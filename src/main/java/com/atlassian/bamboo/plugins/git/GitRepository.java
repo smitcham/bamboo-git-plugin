@@ -627,7 +627,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             try
             {
                 final URIish uri = new URIish(repositoryUrl);
-                if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isShhTransportSupported())
+                if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported())
                 {
                     errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, textProvider.getText("repository.git.messages.unsupportedSshAuthenticationType"));
                 }
@@ -721,7 +721,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             @Override
             public boolean apply(@Nullable final GitAuthenticationType input)
             {
-                return (input == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isShhTransportSupported()) ? false : true;
+                return (input == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported()) ? false : true;
             }
         });
     }

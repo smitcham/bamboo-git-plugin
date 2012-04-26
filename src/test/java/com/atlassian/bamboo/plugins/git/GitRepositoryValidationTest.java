@@ -224,7 +224,7 @@ public class GitRepositoryValidationTest
         GitRepository repo = new GitRepository();
         repo.setTextProvider(mock(TextProvider.class, new ReturnsMocks()));
         FeatureManager featureManager = mock(FeatureManager.class);
-        when(featureManager.isShhTransportSupported()).thenReturn(true);
+        when(featureManager.isSshTransportSupported()).thenReturn(true);
         repo.setFeatureManager(featureManager);
         return repo;
     }

@@ -175,7 +175,7 @@ public class GitAbstractTest
         fixture.setBranchIntegrationHelper(branchIntegrationHelper);
 
         FeatureManager featureManager = mock(FeatureManager.class);
-        when(featureManager.isShhTransportSupported()).thenReturn(true);
+        when(featureManager.isSshTransportSupported()).thenReturn(true);
 
         fixture.setFeatureManager(featureManager);
 
