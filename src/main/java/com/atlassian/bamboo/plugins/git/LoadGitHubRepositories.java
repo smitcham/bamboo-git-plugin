@@ -131,6 +131,8 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
         jsonObject.put("repositoryBranchFilter", new JSONObject().put("data", data));
         jsonObject.put("gitHubRepositories", gitHubRepositories);
 
+        log.info(jsonObject.toString());
+
         return jsonObject;
     }
 
@@ -144,7 +146,10 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
         try
         {
             call.execute();
-            return new JSONObject(IOUtils.toString(call.getResponseAsStream()));
+            String response = IOUtils.toString(call.getResponseAsStream());
+            log.info("Response for url='" + url + "' is:");
+            log.info(response);
+            return new JSONObject(response);
         }
         finally
         {
