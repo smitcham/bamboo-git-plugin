@@ -396,9 +396,32 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     @Override
     public void pushRevision(@NotNull File sourceDirectory, @Nullable String vcsRevisionKey) throws RepositoryException
     {
-        final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
-        final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, new NullBuildLogger(), textProvider);
-        helper.pushRevision(sourceDirectory, vcsRevisionKey);
+        int attempts = 0;
+        boolean succeed = false;
+
+        while (attempts < 3 && !succeed)
+        {
+            attempts++;
+            try
+            {
+                final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
+                final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, new NullBuildLogger(), textProvider);
+                helper.pushRevision(sourceDirectory, vcsRevisionKey);
+                succeed = true;
+            }
+            catch (RepositoryException e)
+            {
+                log.info("RepositoryException during pushing revision " + vcsRevisionKey + ". Exception: " + e.getMessage(), e);
+                if (attempts < 3)
+                {
+                    log.info("Retrying for the " + attempts + " time.");
+                }
+                else
+                {
+                    throw e;
+                }
+            }
+        }
     }
     
     @NotNull
