@@ -1,5 +1,6 @@
 package com.atlassian.bamboo.plugins.git;
 
+import com.atlassian.bamboo.FeatureManager;
 import com.atlassian.bamboo.build.BuildLoggerManager;
 import com.atlassian.bamboo.build.fileserver.BuildDirectoryManager;
 import com.atlassian.bamboo.build.logger.NullBuildLogger;
@@ -48,6 +49,7 @@ import java.util.zip.ZipFile;
 
 import static org.apache.commons.io.FileUtils.listFiles;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
 public class GitAbstractTest
@@ -171,6 +173,11 @@ public class GitAbstractTest
         Mockito.when(branchIntegrationHelper.getCommitterName(fixture)).thenReturn(COMITTER_NAME);
         Mockito.when(branchIntegrationHelper.getCommitterEmail(fixture)).thenReturn(COMITTER_EMAIL);
         fixture.setBranchIntegrationHelper(branchIntegrationHelper);
+
+        FeatureManager featureManager = mock(FeatureManager.class);
+        when(featureManager.isSshTransportSupported()).thenReturn(true);
+
+        fixture.setFeatureManager(featureManager);
 
         return fixture;
     }

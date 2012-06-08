@@ -41,6 +41,8 @@ import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.atlassian.util.concurrent.LazyReference;
 import com.atlassian.util.concurrent.Supplier;
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -63,6 +65,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -650,32 +653,39 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             try
             {
                 final URIish uri = new URIish(repositoryUrl);
-                if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())))
+                if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported())
                 {
-                    errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, textProvider.getText("repository.git.messages.unsupportedHttpAuthenticationType"));
+                    errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, textProvider.getText("repository.git.messages.unsupportedSshAuthenticationType"));
                 }
-                else if (authenticationType == GitAuthenticationType.PASSWORD)
+                else
                 {
-                    boolean duplicateUsername = hasUsername && StringUtils.isNotBlank(uri.getUser());
-                    boolean duplicatePassword = hasPassword && StringUtils.isNotBlank(uri.getPass());
-                    if (duplicateUsername || duplicatePassword)
+                    if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())))
                     {
-                        errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL,
-                                (duplicateUsername ? textProvider.getText("repository.git.messages.duplicateUsernameField") : "")
-                                        + ((duplicateUsername && duplicatePassword) ? " " : "")
-                                        + (duplicatePassword ? textProvider.getText("repository.git.messages.duplicatePasswordField") : ""));
+                        errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, textProvider.getText("repository.git.messages.unsupportedHttpAuthenticationType"));
                     }
-                    if (duplicateUsername)
+                    else if (authenticationType == GitAuthenticationType.PASSWORD)
                     {
-                        errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.duplicateUsernameField"));
-                    }
-                    if (duplicatePassword)
-                    {
-                        errorCollection.addError(TEMPORARY_GIT_PASSWORD_CHANGE, textProvider.getText("repository.git.messages.duplicatePasswordField"));
-                    }
-                    if (uri.getHost() == null && hasUsername)
-                    {
-                        errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.unsupportedUsernameField"));
+                        boolean duplicateUsername = hasUsername && StringUtils.isNotBlank(uri.getUser());
+                        boolean duplicatePassword = hasPassword && StringUtils.isNotBlank(uri.getPass());
+                        if (duplicateUsername || duplicatePassword)
+                        {
+                            errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL,
+                                    (duplicateUsername ? textProvider.getText("repository.git.messages.duplicateUsernameField") : "")
+                                            + ((duplicateUsername && duplicatePassword) ? " " : "")
+                                            + (duplicatePassword ? textProvider.getText("repository.git.messages.duplicatePasswordField") : ""));
+                        }
+                        if (duplicateUsername)
+                        {
+                            errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.duplicateUsernameField"));
+                        }
+                        if (duplicatePassword)
+                        {
+                            errorCollection.addError(TEMPORARY_GIT_PASSWORD_CHANGE, textProvider.getText("repository.git.messages.duplicatePasswordField"));
+                        }
+                        if (uri.getHost() == null && hasUsername)
+                        {
+                            errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.unsupportedUsernameField"));
+                        }
                     }
                 }
             }
@@ -715,7 +725,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     @NotNull
     public List<NameValuePair> getAuthenticationTypes()
     {
-        return Lists.transform(Arrays.asList(GitAuthenticationType.values()), new Function<GitAuthenticationType, NameValuePair>()
+        return Lists.transform(Lists.newArrayList(filterAuthenticationTypes(Arrays.asList(GitAuthenticationType.values()))), new Function<GitAuthenticationType, NameValuePair>()
         {
             public NameValuePair apply(GitAuthenticationType from)
             {
@@ -728,6 +738,18 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     public String getAuthType()
     {
         return accessData.authenticationType != null ? accessData.authenticationType.name() : defaultAuthenticationType.name();
+    }
+
+    private Iterable<GitAuthenticationType> filterAuthenticationTypes(Collection<GitAuthenticationType> authTypes)
+    {
+        return Iterables.filter(authTypes, new Predicate<GitAuthenticationType>()
+        {
+            @Override
+            public boolean apply(@Nullable final GitAuthenticationType input)
+            {
+                return (input == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported()) ? false : true;
+            }
+        });
     }
 
     // -------------------------------------------------------------------------------------------------- Public Methods
