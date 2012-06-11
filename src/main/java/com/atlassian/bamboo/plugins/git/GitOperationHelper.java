@@ -672,7 +672,18 @@ public abstract class GitOperationHelper
         }
         catch (IOException e)
         {
-            throw new RepositoryException(buildLogger.addErrorLogEntry(textProvider.getText("repository.git.messages.failedToOpenTransport", Arrays.asList(accessData.repositoryUrl))), e);
+            throw new RepositoryException("Getting commit "+ targetRevision + " from " + accessData.repositoryUrl + " failed", e);
+        }
+        finally
+        {
+            if (revWalk != null)
+            {
+                revWalk.release();
+            }
+            if (localRepository != null)
+            {
+                localRepository.close();
+            }
         }
         return null;
     }
