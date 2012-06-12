@@ -56,7 +56,7 @@ public class WalkingRepositoryWithDetachedChangesetsTest extends GitAbstractTest
                 {CHG_1, "4", CHG_4, asList(COMMENT_4, COMMENT_2)}, // no chg#3 - detached changeset!
                 {CHG_1, "5", CHG_5, asList(COMMENT_5, COMMENT_4, COMMENT_3, COMMENT_2)}, // order of 3 and 4 arbitrary!
 
-                {CHG_5, "4", CHG_4, asList(getTextProvider().getText("repository.git.messages.unknownChanges", asList(CHG_5, CHG_4)))} // repository going back
+                {CHG_5, "4", CHG_4, asList(getI18nResolver().getText("repository.git.messages.unknownChanges", CHG_5, CHG_4))} // repository going back
 
 
         };
