@@ -24,7 +24,7 @@ import com.atlassian.bamboo.v2.build.agent.capability.CapabilityContext;
 import com.atlassian.bamboo.v2.build.repository.CustomSourceDirectoryAwareRepository;
 import com.atlassian.bamboo.variable.CustomVariableContext;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
-import com.opensymphony.xwork.TextProvider;
+import com.atlassian.sal.api.message.I18nResolver;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -43,6 +43,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
                                                                               BranchMergingAwareRepository
 
 {
+    private static final Logger log = Logger.getLogger(GitHubRepository.class);
     // ------------------------------------------------------------------------------------------------------- Constants
 
     private static final String REPOSITORY_GITHUB_USERNAME = "repository.github.username";
@@ -60,7 +61,6 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     private static final String REPOSITORY_GITHUB_ERROR_MISSING_REPOSITORY = "repository.github.error.missingRepository";
 
     // ------------------------------------------------------------------------------------------------- Type Properties
-    private static final Logger log = Logger.getLogger(GitHubRepository.class);
 
     private GitRepository gitRepository = new GitRepository();
 
@@ -76,6 +76,8 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
 
     // ---------------------------------------------------------------------------------------------------- Dependencies
 
+    private I18nResolver i18nResolver;
+
     public void setBuildDirectoryManager(BuildDirectoryManager buildDirectoryManager)
     {
         super.setBuildDirectoryManager(buildDirectoryManager);
@@ -88,10 +90,10 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
         gitRepository.setBuildLoggerManager(buildLoggerManager);
     }
 
-    @Override
-    public void setTextProvider(TextProvider textProvider) {
-        super.setTextProvider(textProvider);
-        gitRepository.setTextProvider(textProvider);
+    public void setI18nResolver(I18nResolver i18nResolver)
+    {
+        this.i18nResolver = i18nResolver;
+        gitRepository.setI18nResolver(i18nResolver);
     }
 
     @Override
@@ -222,7 +224,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
 
         if (StringUtils.isBlank(buildConfiguration.getString(REPOSITORY_GITHUB_REPOSITORY)))
         {
-            errorCollection.addError(REPOSITORY_GITHUB_REPOSITORY, textProvider.getText(REPOSITORY_GITHUB_ERROR_MISSING_REPOSITORY));
+            errorCollection.addError(REPOSITORY_GITHUB_REPOSITORY, i18nResolver.getText(REPOSITORY_GITHUB_ERROR_MISSING_REPOSITORY));
         }
         return errorCollection;
     }
