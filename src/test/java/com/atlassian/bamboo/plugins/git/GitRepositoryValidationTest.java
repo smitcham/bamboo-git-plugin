@@ -2,7 +2,7 @@ package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.utils.error.ErrorCollection;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
-import com.atlassian.sal.api.message.I18nResolver;
+import com.opensymphony.xwork.TextProvider;
 import org.mockito.Mockito;
 import org.mockito.internal.stubbing.defaultanswers.ReturnsMocks;
 import org.testng.Assert;
@@ -219,7 +219,7 @@ public class GitRepositoryValidationTest
     private static GitRepository createRepository()
     {
         GitRepository repo = new GitRepository();
-        repo.setI18nResolver(Mockito.mock(I18nResolver.class, new ReturnsMocks()));
+        repo.setTextProvider(Mockito.mock(TextProvider.class, new ReturnsMocks()));
         return repo;
     }
 }
