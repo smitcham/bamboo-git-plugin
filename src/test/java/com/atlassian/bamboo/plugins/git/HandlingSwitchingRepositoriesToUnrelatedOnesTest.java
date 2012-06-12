@@ -16,8 +16,6 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-import static java.util.Arrays.asList;
-
 public class HandlingSwitchingRepositoriesToUnrelatedOnesTest extends GitAbstractTest
 {
     // multiple branches repo
@@ -60,7 +58,7 @@ public class HandlingSwitchingRepositoriesToUnrelatedOnesTest extends GitAbstrac
 
         Assert.assertEquals(vcsRevisionKey, CHG_M_4);
         List<String> comments = Lists.transform(changes.getChanges(), new ExtractComments());
-        Assert.assertEquals(comments, Arrays.asList(getTextProvider().getText("repository.git.messages.unknownChanges", asList(previousChangeset, CHG_M_4))));
+        Assert.assertEquals(comments, Arrays.asList(getI18nResolver().getText("repository.git.messages.unknownChanges", previousChangeset, CHG_M_4)));
     }
 
     @Test
@@ -84,8 +82,8 @@ public class HandlingSwitchingRepositoriesToUnrelatedOnesTest extends GitAbstrac
         Assert.assertEquals(newVcsRevisionKey, CHG_M_4);
 
         // we don't know that the previous changeset is really unrelated, we treat it as being on a very very unrelated branch
-//        List<String> comments = Lists.transform(changes.getChanges(), new ExtractComments());
-//        Assert.assertEquals(comments, Arrays.asList(getTextProvider().getText("repository.git.messages.unknownChanges", asList(CHG_5, CHG_M_4))));
+        //List<String> comments = Lists.transform(changes.getChanges(), new ExtractComments());
+        //Assert.assertEquals(comments, Arrays.asList(getI18nResolver().getText("repository.git.messages.unknownChanges", CHG_5, CHG_M_4)));
     }
 
     @Test
