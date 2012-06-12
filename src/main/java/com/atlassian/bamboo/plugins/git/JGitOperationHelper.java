@@ -4,7 +4,7 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.build.CommandLogEntry;
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.repository.RepositoryException;
-import com.opensymphony.xwork.TextProvider;
+import com.atlassian.sal.api.message.I18nResolver;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheCheckout;
@@ -35,9 +35,9 @@ public class JGitOperationHelper extends GitOperationHelper
     // ---------------------------------------------------------------------------------------------------- Constructors
 
     public JGitOperationHelper(final GitRepository.GitRepositoryAccessData accessData, final @NotNull BuildLogger buildLogger,
-                               final @NotNull TextProvider textProvider)
+                               final @NotNull I18nResolver i18nResolver)
     {
-        super(accessData, buildLogger, textProvider);
+        super(accessData, buildLogger, i18nResolver);
     }
 
     // ----------------------------------------------------------------------------------------------- Interface Methods
@@ -55,7 +55,7 @@ public class JGitOperationHelper extends GitOperationHelper
         }
         catch (IOException e)
         {
-            String message = textProvider.getText("repository.git.messages.fetchingFailed", Arrays.asList(accessData.repositoryUrl, branchDescription, sourceDirectory));
+            String message = i18nResolver.getText("repository.git.messages.fetchingFailed", accessData.repositoryUrl, branchDescription, sourceDirectory);
             throw new RepositoryException(buildLogger.addErrorLogEntry(message + " " + e.getMessage()), e);
         }
         finally
@@ -95,7 +95,7 @@ public class JGitOperationHelper extends GitOperationHelper
     {
         if (useSubmodules)
         {
-            buildLogger.addBuildLogEntry(new CommandLogEntry(textProvider.getText("repository.git.messages.jgit.submodules.not.supported")));
+            buildLogger.addBuildLogEntry(new CommandLogEntry(i18nResolver.getText("repository.git.messages.jgit.submodules.not.supported")));
         }
 
         RevWalk revWalk = null;
@@ -119,7 +119,7 @@ public class JGitOperationHelper extends GitOperationHelper
             }
             catch (MissingObjectException e)
             {
-                final String message = textProvider.getText("repository.git.messages.checkoutFailedMissingObject", Arrays.asList(targetRevision, e.getObjectId().getName()));
+                final String message = i18nResolver.getText("repository.git.messages.checkoutFailedMissingObject", targetRevision, e.getObjectId().getName());
                 throw new RepositoryException(buildLogger.addErrorLogEntry(message));
             }
 
@@ -132,7 +132,7 @@ public class JGitOperationHelper extends GitOperationHelper
         }
         catch (IOException e)
         {
-            throw new RepositoryException(buildLogger.addErrorLogEntry(textProvider.getText("repository.git.messages.checkoutFailed", Arrays.asList(targetRevision))) + e.getMessage(), e);
+            throw new RepositoryException(buildLogger.addErrorLogEntry(i18nResolver.getText("repository.git.messages.checkoutFailed", targetRevision)) + e.getMessage(), e);
         }
         finally
         {

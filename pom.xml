@@ -6,15 +6,16 @@
   <groupId>com.atlassian.bamboo.plugins</groupId>
   <artifactId>atlassian-bamboo-plugin-git</artifactId>
   <version>1.8.20-SNAPSHOT</version>
+  <packaging>atlassian-plugin</packaging>
+
+  <name>Atlassian Bamboo Git Repository Plugin</name>
+  <description>Plugin to provide Git SCM support.</description>
 
   <organization>
     <name>Atlassian</name>
     <url>http://www.atlassian.com/</url>
   </organization>
 
-  <name>Atlassian Bamboo Git Repository Plugin</name>
-  <description>Plugin to provide Git SCM support.</description>
-  <packaging>jar</packaging>
   <scm>
     <connection>scm:git:git://github.com/atlassian/bamboo-git-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/atlassian/bamboo-git-plugin.git</developerConnection>
@@ -125,7 +126,7 @@
       <plugin>
         <groupId>com.atlassian.maven.plugins</groupId>
         <artifactId>maven-bamboo-plugin</artifactId>
-        <version>3.7</version>
+        <version>3.11</version>
         <extensions>true</extensions>
         <configuration>
           <productVersion>${bamboo.version}</productVersion>
