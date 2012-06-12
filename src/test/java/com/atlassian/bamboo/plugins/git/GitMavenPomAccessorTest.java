@@ -3,13 +3,14 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.repository.MavenPomAccessor;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.SshProxyService;
-import com.atlassian.sal.api.message.I18nResolver;
 import com.atlassian.testtools.TempDirectory;
+import com.opensymphony.xwork.TextProvider;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.storage.file.FileRepository;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -129,9 +130,9 @@ public class GitMavenPomAccessorTest extends GitAbstractTest
     public void testRejectPathWithDots() throws Exception
     {
         GitRepository repository = mock(GitRepository.class);
-        I18nResolver i18nResolver = mock(I18nResolver.class);
-        SshProxyService sshProxyService = null; //new SshProxyServiceImpl(i18nResolver);
-        new GitMavenPomAccessor(repository, sshProxyService, i18nResolver, null).withPath("..");
+        TextProvider textProvider = mock(TextProvider.class);
+        SshProxyService sshProxyService = null; //new SshProxyServiceImpl(textProvider);
+        new GitMavenPomAccessor(repository, sshProxyService, textProvider, null).withPath("..");
     }
 
 }

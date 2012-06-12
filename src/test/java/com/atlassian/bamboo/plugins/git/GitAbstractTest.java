@@ -14,7 +14,7 @@ import com.atlassian.bamboo.security.StringEncrypter;
 import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.util.BambooFileUtils;
 import com.atlassian.bamboo.utils.i18n.DefaultI18nBean;
-import com.atlassian.bamboo.utils.i18n.I18nResolverAdapter;
+import com.atlassian.bamboo.utils.i18n.TextProviderAdapter;
 import com.atlassian.bamboo.v2.build.BuildContext;
 import com.atlassian.bamboo.v2.build.BuildContextImpl;
 import com.atlassian.bamboo.v2.build.agent.capability.CapabilityContext;
@@ -23,8 +23,8 @@ import com.atlassian.bamboo.variable.CustomVariableContextImpl;
 import com.atlassian.bamboo.variable.VariableDefinitionContext;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.atlassian.plugin.PluginAccessor;
-import com.atlassian.sal.api.message.I18nResolver;
 import com.google.common.collect.Maps;
+import com.opensymphony.xwork.TextProvider;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.eclipse.jgit.lib.Repository;
@@ -123,18 +123,18 @@ public class GitAbstractTest
 
     public GitOperationHelper createJGitOperationHelper(final GitRepositoryAccessData accessData)
     {
-        I18nResolver i18nResolver = Mockito.mock(I18nResolver.class);
-        return new JGitOperationHelper(accessData, new NullBuildLogger(), i18nResolver);
+        TextProvider textProvider = Mockito.mock(TextProvider.class);
+        return new JGitOperationHelper(accessData, new NullBuildLogger(), textProvider);
     }
 
     public NativeGitOperationHelper createNativeGitOperationHelper(final GitRepositoryAccessData accessData) throws RepositoryException
     {
-        I18nResolver i18nResolver = Mockito.mock(I18nResolver.class);
+        TextProvider textProvider = Mockito.mock(TextProvider.class);
         final GitRepository repository = Mockito.mock(GitRepository.class);
         Mockito.when(repository.getWorkingDirectory()).thenReturn(new File("/"));
         Mockito.when(repository.getGitCapability()).thenReturn("/usr/bin/git");
         final SshProxyService sshProxyService = Mockito.mock(SshProxyService.class);
-        return new NativeGitOperationHelper(repository, accessData, sshProxyService, new NullBuildLogger(), i18nResolver);
+        return new NativeGitOperationHelper(repository, accessData, sshProxyService, new NullBuildLogger(), textProvider);
     }
 
     public GitRepository createNativeGitRepository() throws Exception
@@ -156,7 +156,7 @@ public class GitAbstractTest
 
         BuildDirectoryManager buildDirectoryManager = Mockito.mock(BuildDirectoryManager.class, new Returns(workingDirectory));
         fixture.setBuildDirectoryManager(buildDirectoryManager);
-        fixture.setI18nResolver(getI18nResolver());
+        fixture.setTextProvider(getTextProvider());
 
         CustomVariableContext customVariableContext = new CustomVariableContextImpl();
         customVariableContext.setVariables(Maps.<String, VariableDefinitionContext>newHashMap());
@@ -209,11 +209,11 @@ public class GitAbstractTest
         assertEquals(files.size(), fileCount, "Number of files");
     }
 
-    public static I18nResolver getI18nResolver()
+    public static TextProvider getTextProvider()
     {
         DefaultI18nBean bean = new DefaultI18nBean(Locale.US, Mockito.mock(PluginAccessor.class));
         bean.getI18nBundles().add(resourceBundle);
-        return new I18nResolverAdapter(bean);
+        return new TextProviderAdapter(bean);
     }
 
     protected static GitRepositoryAccessData createAccessData(String repositoryUrl)

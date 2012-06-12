@@ -4,7 +4,7 @@ import com.atlassian.bamboo.build.logger.NullBuildLogger;
 import com.atlassian.bamboo.repository.MavenPomAccessorAbstract;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.SshProxyService;
-import com.atlassian.sal.api.message.I18nResolver;
+import com.opensymphony.xwork.TextProvider;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.Arrays;
 
 public class GitMavenPomAccessor extends MavenPomAccessorAbstract<GitRepository>
 {
@@ -26,7 +27,7 @@ public class GitMavenPomAccessor extends MavenPomAccessorAbstract<GitRepository>
     private final String gitCapability;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     private final SshProxyService sshProxyService;
-    private final I18nResolver i18nResolver;
+    private final TextProvider textProvider;
     // ---------------------------------------------------------------------------------------------------- Constructors
     // ----------------------------------------------------------------------------------------------- Interface Methods
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -35,13 +36,13 @@ public class GitMavenPomAccessor extends MavenPomAccessorAbstract<GitRepository>
 
     protected GitMavenPomAccessor(GitRepository repository,
                                   @NotNull final SshProxyService sshProxyService,
-                                  @NotNull final I18nResolver i18nResolver,
+                                  @NotNull final TextProvider textProvider,
                                   @Nullable String gitCapability)
     {
         super(repository);
         this.repository = repository;
         this.sshProxyService = sshProxyService;
-        this.i18nResolver = i18nResolver;
+        this.textProvider = textProvider;
         this.gitCapability = gitCapability;
     }
 
@@ -51,7 +52,7 @@ public class GitMavenPomAccessor extends MavenPomAccessorAbstract<GitRepository>
         {
             if (pathToProjectRoot.contains(".."))
             {
-                throw new IllegalArgumentException(i18nResolver.getText("repository.git.messages.invalidPomPath"));
+                throw new IllegalArgumentException(textProvider.getText("repository.git.messages.invalidPomPath"));
             }
             this.pathToPom = pathToProjectRoot;
         }
@@ -73,7 +74,7 @@ public class GitMavenPomAccessor extends MavenPomAccessorAbstract<GitRepository>
     public File checkoutMavenPom(@NotNull File destinationPath) throws RepositoryException
     {
         log.info("checkoutMavenPom to: " + destinationPath);
-        GitOperationHelper helper = new JGitOperationHelper(repository.getSubstitutedAccessData(), new NullBuildLogger(), i18nResolver);
+        GitOperationHelper helper = new JGitOperationHelper(repository.getSubstitutedAccessData(), new NullBuildLogger(), textProvider);
         String targetRevision = helper.obtainLatestRevision();
         helper.fetch(destinationPath, true);
         helper.checkout(null, destinationPath, targetRevision, helper.getRevisionIfExists(destinationPath, Constants.HEAD));
@@ -92,6 +93,6 @@ public class GitMavenPomAccessor extends MavenPomAccessorAbstract<GitRepository>
             }
         }
 
-        throw new RepositoryException(i18nResolver.getText("repository.git.messages.cannotFindPom", pathToPom));
+        throw new RepositoryException(textProvider.getText("repository.git.messages.cannotFindPom", Arrays.asList(pathToPom)));
     }
 }

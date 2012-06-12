@@ -6,7 +6,7 @@ import com.atlassian.bamboo.plugins.git.GitAbstractTest;
 import com.atlassian.bamboo.plugins.git.GitOperationHelper;
 import com.atlassian.bamboo.plugins.git.JGitOperationHelper;
 import com.atlassian.bamboo.repository.RepositoryException;
-import com.atlassian.sal.api.message.I18nResolver;
+import com.opensymphony.xwork.TextProvider;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -76,7 +76,7 @@ public class TimeoutsTest extends GitAbstractTest
 
     public GitOperationHelper createGitOperationHelper()
     {
-        I18nResolver i18nResolver = mock(I18nResolver.class);
+        TextProvider textProvider = mock(TextProvider.class);
 
         return new JGitOperationHelper(null,
                                        new NullBuildLogger()
@@ -88,7 +88,7 @@ public class TimeoutsTest extends GitAbstractTest
                                                return null;
                                            }
                                        },
-                                       i18nResolver);
+                                       textProvider);
     }
 
     @Test

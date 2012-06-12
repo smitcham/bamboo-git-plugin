@@ -1,49 +1,45 @@
-<atlassian-plugin key="${project.groupId}.${project.artifactId}" name="${project.name}" plugins-version="2">
-  <plugin-info>
-    <description>${project.description}</description>
-    <version>${project.version}</version>
-    <vendor name="${project.organization.name}" url="${project.organization.url}" />
-  </plugin-info>
+<atlassian-plugin key="${project.groupId}.${project.artifactId}" name="${project.name}" plugins-version="1">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <vendor name="${project.organization.name}" url="${project.organization.url}" />
+    </plugin-info>
 
-  <resource type="i18n" name="i18n" location="com.atlassian.bamboo.plugins.git.i18n"/>
+    <resource type="i18n" name="Git_i18n" location="com.atlassian.bamboo.plugins.git.i18n"/>
 
-  <repository key="git" name="Git Repository" class="com.atlassian.bamboo.plugins.git.GitRepository">
-    <description>A Git Repository</description>
-    <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/gitRepositoryEdit.ftl"/>
-    <resource type="freemarker" name="view" location="/com/atlassian/bamboo/plugins/git/gitRepositoryView.ftl"/>
-    <resource type="freemarker" name="advancedEdit" location="/com/atlassian/bamboo/plugins/git/gitRepositoryEditAdvancedOptions.ftl"/>
-    <resource type="freemarker" name="mavenPomCheckoutAccessEdit" location="/com/atlassian/bamboo/plugins/git/mavenImportGitRepositoryEdit.ftl"/>
-    <resource type="freemarker" name="branchIntegrationEdit" location="/com/atlassian/bamboo/plugins/git/branchIntegrationEdit.ftl"/>
-  </repository>
+    <repository key="git" name="Git Repository" class="com.atlassian.bamboo.plugins.git.GitRepository">
+        <description>A Git Repository</description>
+        <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/gitRepositoryEdit.ftl"/>
+        <resource type="freemarker" name="view" location="/com/atlassian/bamboo/plugins/git/gitRepositoryView.ftl"/>
+        <resource type="freemarker" name="advancedEdit" location="/com/atlassian/bamboo/plugins/git/gitRepositoryEditAdvancedOptions.ftl"/>
+        <resource type="freemarker" name="mavenPomCheckoutAccessEdit" location="/com/atlassian/bamboo/plugins/git/mavenImportGitRepositoryEdit.ftl"/>
+        <resource type="freemarker" name="branchIntegrationEdit" location="/com/atlassian/bamboo/plugins/git/branchIntegrationEdit.ftl"/>
+    </repository>
 
-  <repository key="gh" name="GitHub repository" class="com.atlassian.bamboo.plugins.git.GitHubRepository">
-    <description>A GitHub Repository</description>
-    <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/ghRepositoryEdit.ftl"/>
-    <resource type="freemarker" name="view" location="/com/atlassian/bamboo/plugins/git/ghRepositoryView.ftl"/>
-    <resource type="freemarker" name="advancedEdit" location="/com/atlassian/bamboo/plugins/git/ghRepositoryEditAdvancedOptions.ftl"/>
-    <resource type="freemarker" name="branchIntegrationEdit" location="/com/atlassian/bamboo/plugins/git/branchIntegrationEdit.ftl"/>
-  </repository>
+    <repository key="gh" name="GitHub repository" class="com.atlassian.bamboo.plugins.git.GitHubRepository">
+        <description>A GitHub Repository</description>
+        <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/ghRepositoryEdit.ftl"/>
+        <resource type="freemarker" name="view" location="/com/atlassian/bamboo/plugins/git/ghRepositoryView.ftl"/>
+        <resource type="freemarker" name="advancedEdit" location="/com/atlassian/bamboo/plugins/git/ghRepositoryEditAdvancedOptions.ftl"/>
+        <resource type="freemarker" name="branchIntegrationEdit" location="/com/atlassian/bamboo/plugins/git/branchIntegrationEdit.ftl"/>
+    </repository>
 
-  <capabilityType key="system.git.executable" name="Git" class="com.atlassian.bamboo.plugins.git.GitCapabilityTypeModule" sortOrder="2000">
-    <description>The Git capability type</description>
-    <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/editGitCapability.ftl"/>
-  </capabilityType>
+    <capabilityType key="system.git.executable" name="Git" class="com.atlassian.bamboo.plugins.git.GitCapabilityTypeModule" sortOrder="2000">
+        <description>The Git capability type</description>
+        <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/editGitCapability.ftl"/>
+    </capabilityType>
 
-  <xwork key="GitXWork" name="GitXWork" class="java.lang.Void">
-    <package name="gitPluginBuildAdmin" extends="buildAdmin">
-      <action name="deleteGitCacheDirectory" class="com.atlassian.bamboo.plugins.git.DeleteGitCacheDirectoryAction">
-        <result name="success" type="redirect">/browse/${buildKey}/config</result>
-        <result name="error" type="freemarker">/error.ftl</result>
-      </action>
-    </package>
-    <package name="gitPluginAjax" extends="ajax">
-      <action name="loadGitHubRepositories" class="com.atlassian.bamboo.plugins.git.LoadGitHubRepositories" method="load">
-        <result name="success" type="json"/>
-      </action>
-    </package>
-  </xwork>
-
-  <component-import key="i18nResolver" interface="com.atlassian.sal.api.message.I18nResolver" />
-  <component-import key="branchIntegrationHelper" interface="com.atlassian.bamboo.plan.branch.BranchIntegrationHelper" />
-
+    <xwork key="GitXWork" name="GitXWork" class="java.lang.Void">
+      <package name="gitPluginBuildAdmin" extends="buildAdmin">
+        <action name="deleteGitCacheDirectory" class="com.atlassian.bamboo.plugins.git.DeleteGitCacheDirectoryAction">
+            <result name="success" type="redirect">/browse/${buildKey}/config</result>
+            <result name="error" type="freemarker">/error.ftl</result>
+          </action>
+      </package>
+      <package name="gitPluginAjax" extends="ajax">
+        <action name="loadGitHubRepositories" class="com.atlassian.bamboo.plugins.git.LoadGitHubRepositories" method="load">
+          <result name="success" type="json"/>
+        </action>
+      </package>
+    </xwork>
 </atlassian-plugin>

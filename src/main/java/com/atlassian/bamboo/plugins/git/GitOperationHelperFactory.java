@@ -4,7 +4,7 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.SshProxyService;
-import com.atlassian.sal.api.message.I18nResolver;
+import com.opensymphony.xwork.TextProvider;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,15 +18,15 @@ public class GitOperationHelperFactory
                                                               final @NotNull GitRepository.GitRepositoryAccessData accessData,
                                                               final @NotNull SshProxyService sshProxyService,
                                                               final @NotNull BuildLogger buildLogger,
-                                                              final @NotNull I18nResolver i18nResolver) throws RepositoryException
+                                                              final @NotNull TextProvider textProvider) throws RepositoryException
     {
         if (isNativeGitEnabled(repository))
         {
-            return new NativeGitOperationHelper(repository, accessData, sshProxyService, buildLogger, i18nResolver);
+            return new NativeGitOperationHelper(repository, accessData, sshProxyService, buildLogger, textProvider);
         }
         else
         {
-            return new JGitOperationHelper(accessData, buildLogger, i18nResolver);
+            return new JGitOperationHelper(accessData, buildLogger, textProvider);
         }
     }
 

@@ -6,8 +6,8 @@ import com.atlassian.bamboo.ssh.ProxyConnectionData;
 import com.atlassian.bamboo.ssh.ProxyConnectionDataBuilder;
 import com.atlassian.bamboo.ssh.ProxyException;
 import com.atlassian.bamboo.ssh.SshProxyService;
-import com.atlassian.sal.api.message.I18nResolver;
 import com.google.common.collect.ImmutableMap;
+import com.opensymphony.xwork.TextProvider;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
@@ -41,9 +41,9 @@ public class NativeGitOperationHelper extends GitOperationHelper
                                     final @NotNull GitRepository.GitRepositoryAccessData accessData,
                                     final @NotNull SshProxyService sshProxyService,
                                     final @NotNull BuildLogger buildLogger,
-                                    final @NotNull I18nResolver i18nResolver) throws RepositoryException
+                                    final @NotNull TextProvider textProvider) throws RepositoryException
     {
-        super(accessData, buildLogger, i18nResolver);
+        super(accessData, buildLogger, textProvider);
         this.sshProxyService = sshProxyService;
         this.gitCommandProcessor = new GitCommandProcessor(repository.getGitCapability(), buildLogger, accessData.commandTimeout, accessData.verboseLogs);
         this.gitCommandProcessor.checkGitExistenceInSystem(repository.getWorkingDirectory());
