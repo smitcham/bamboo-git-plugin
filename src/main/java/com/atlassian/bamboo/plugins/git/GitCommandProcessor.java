@@ -309,6 +309,10 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         protected void processLine(int i, String s)
         {
             buildLogger.addBuildLogEntry(s);
+            if (stringBuilder.length()!=0)
+            {
+                stringBuilder.append("\n");
+            }
             stringBuilder.append(s);
         }
 
