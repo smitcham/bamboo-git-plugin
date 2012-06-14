@@ -8,8 +8,8 @@ import com.atlassian.bamboo.repository.RepositoryException;
  */
 class GitCommandException extends RepositoryException {
 
-    private String stdout;
-    private String stderr;
+    private final String stdout;
+    private final String stderr;
 
     /**
      * Create a command exception containing the message and the stderr
@@ -49,6 +49,17 @@ class GitCommandException extends RepositoryException {
     @Override
     public String getMessage()
     {
-        return super.getMessage() + " stderr: " + stderr + " stdout: " + stdout;
+        final StringBuilder sb = new StringBuilder(super.getMessage());
+        sb
+                .append(", stderr:\n")
+                .append(stderr);
+        if (!stdout.equals(stderr))
+        {
+            sb
+                    .append("\nstdout:\n")
+                    .append(stdout);
+        }
+
+        return sb.toString();
     }
 }
