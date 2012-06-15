@@ -279,37 +279,36 @@ public class GitHubAccessorTest
     @Test
     public void retrievesOrganisationRepositories() throws IOException, GitHubAccessor.GitHubException
     {
-        GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
+        final GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
 
-        String expected = "[" + EXPECTED_ATLASSIAN_REPOSITORIES + "]";
+        final String expected = "[" + EXPECTED_ATLASSIAN_REPOSITORIES + "]";
         Assert.assertEquals(accessor.getOrganisationRepositories("atlassian").toString(), expected);
     }
 
     @Test
     public void retrievesOrganisations() throws IOException, GitHubAccessor.GitHubException
     {
-        GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
+        final GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
 
-        String expected = "[atlassian]";
+        final String expected = "[atlassian]";
         Assert.assertEquals(accessor.getUserOrganisations().toString(), expected);
     }
 
     @Test
     public void retrievesAccessibleRepositories() throws IOException, GitHubAccessor.GitHubException
     {
-        GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
+        final GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
 
-        String expected = "[" + EXPECTED_USER_REPOSITORIES + ", " + EXPECTED_ATLASSIAN_REPOSITORIES + "]";
+        final String expected = "[" + EXPECTED_USER_REPOSITORIES + ", " + EXPECTED_ATLASSIAN_REPOSITORIES + "]";
         Assert.assertEquals(accessor.getAccessibleRepositories().toString(), expected);
     }
 
     @Test
     public void retrievesAccessibleRepositoriesAndBranches() throws IOException, GitHubAccessor.GitHubException
     {
-        GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
+        final GitHubAccessor accessor = getGitHubAccessor("johnsmith", "");
 
-        String expected = "{atlassian/clover-hudson-plugin=[master], atlassian/clover-jenkins-plugin=[master], atlassian/xalan-j=[xalan-j_2_1_0_maint, jdk-1_4_2, trunk, jaxp-ri-1_2_0-fcs-branch], johnsmith/furry-octo-nemesis=[master], johnsmith/north-american-wight=[master]}";
-        Assert.assertEquals(accessor.getAccessibleRepositoriesAndBranches().toString(), expected);
+        final String expected = "{johnsmith/furry-octo-nemesis=[master], johnsmith/north-american-wight=[master], atlassian/clover-hudson-plugin=[master], atlassian/clover-jenkins-plugin=[master], atlassian/xalan-j=[jaxp-ri-1_2_0-fcs-branch, jdk-1_4_2, trunk, xalan-j_2_1_0_maint]}";
         Assert.assertEquals(accessor.getAccessibleRepositoriesAndBranches().toString(), expected);
     }
 
@@ -317,7 +316,7 @@ public class GitHubAccessorTest
     @Test(expectedExceptions = GitHubAccessor.GitHubException.class)
     void handlesErrors() throws IOException, GitHubAccessor.GitHubException
     {
-        GitHubAccessor accessor = getGitHubAccessor("a", "a");
+        final GitHubAccessor accessor = getGitHubAccessor("a", "a");
         Assert.assertEquals(accessor.getOrganisationRepositories("faulty").toString(), "");
     }
 
