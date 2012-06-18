@@ -11,6 +11,7 @@ import com.atlassian.bamboo.plugins.git.GitRepository.GitRepositoryAccessData;
 import com.atlassian.bamboo.project.Project;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.security.StringEncrypter;
+import com.atlassian.bamboo.security.StringEncrypterImpl;
 import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.util.BambooFileUtils;
 import com.atlassian.bamboo.utils.i18n.DefaultI18nBean;
@@ -39,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -77,9 +77,9 @@ public class GitAbstractTest
 
     public static void setRepositoryProperties(GitRepository gitRepository, String repositoryUrl, String branch, String sshKey, String sshPassphrase, Map<String, String> paramMap) throws Exception
     {
-        StringEncrypter encrypter = new StringEncrypter();
+        StringEncrypter encrypter = new StringEncrypterImpl();
 
-        Map<String, Object> params = new HashMap<String, Object>(paramMap);
+        Map<String, String> params = Maps.newHashMap(paramMap);
 
         params.put("repository.git.branch", branch);
         if (sshKey != null)
@@ -171,6 +171,8 @@ public class GitAbstractTest
         Mockito.when(branchIntegrationHelper.getCommitterName(fixture)).thenReturn(COMITTER_NAME);
         Mockito.when(branchIntegrationHelper.getCommitterEmail(fixture)).thenReturn(COMITTER_EMAIL);
         fixture.setBranchIntegrationHelper(branchIntegrationHelper);
+
+        fixture.setEncrypter(new StringEncrypterImpl());
 
         return fixture;
     }

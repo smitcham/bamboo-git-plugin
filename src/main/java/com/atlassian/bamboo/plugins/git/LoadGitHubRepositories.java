@@ -44,8 +44,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
     private GitHubRepository githubRepository;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     private RepositoryDefinitionManager repositoryDefinitionManager;
-
-
+    private StringEncrypter stringEncrypter;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -73,7 +72,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
                 GitHubRepository ghRepository = Narrow.to(repository, GitHubRepository.class);
                 if (ghRepository != null)
                 {
-                    password = new StringEncrypter().decrypt(ghRepository.getPassword());
+                    password = stringEncrypter.decrypt(ghRepository.getPassword());
                 }
             }
         }
@@ -276,5 +275,10 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
     public void setRepositoryDefinitionManager(final RepositoryDefinitionManager repositoryDefinitionManager)
     {
         this.repositoryDefinitionManager = repositoryDefinitionManager;
+    }
+
+    public void setStringEncrypter(StringEncrypter stringEncrypter)
+    {
+        this.stringEncrypter = stringEncrypter;
     }
 }

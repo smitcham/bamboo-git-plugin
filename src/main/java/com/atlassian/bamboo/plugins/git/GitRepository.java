@@ -39,7 +39,6 @@ import com.atlassian.bamboo.v2.build.repository.CustomSourceDirectoryAwareReposi
 import com.atlassian.bamboo.v2.build.repository.RequirementsAwareRepository;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.atlassian.sal.api.message.I18nResolver;
-import com.atlassian.util.concurrent.LazyReference;
 import com.atlassian.util.concurrent.Supplier;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -105,7 +104,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     private static final GitAuthenticationType defaultAuthenticationType = GitAuthenticationType.NONE;
     private static boolean USE_SHALLOW_CLONES = new SystemProperty(false, "atlassian.bamboo.git.useShallowClones", "ATLASSIAN_BAMBOO_GIT_USE_SHALLOW_CLONES").getValue(true);
 
-    final static int DEFAULT_COMMAND_TIMEOUT_IN_MINUTES = 180;
+    static final int DEFAULT_COMMAND_TIMEOUT_IN_MINUTES = 180;
 
     // ------------------------------------------------------------------------------------------------- Type Properties
 
@@ -153,20 +152,12 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     // Maven 2 import
     private transient String pathToPom;
 
-    //todo: Spring-inject StringEncrypter singleton, https://atlaseye.atlassian.com/cru/CR-BAM-2232#c37222
-    private final transient LazyReference<StringEncrypter> encrypterRef = new LazyReference<StringEncrypter>()
-    {
-        @Override
-        protected StringEncrypter create() throws Exception
-        {
-            return new StringEncrypter();
-        }
-    };
 
     // ---------------------------------------------------------------------------------------------------- Dependencies
     private transient CapabilityContext capabilityContext;
     private transient I18nResolver i18nResolver;
     private transient SshProxyService sshProxyService;
+    private transient StringEncrypter encrypter;
     // ---------------------------------------------------------------------------------------------------- Constructors
 
     // ----------------------------------------------------------------------------------------------- Interface Methods
@@ -561,11 +552,11 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         buildConfiguration.setProperty(REPOSITORY_GIT_COMMAND_TIMEOUT, buildConfiguration.getInt(REPOSITORY_GIT_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT_IN_MINUTES));
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_PASSWORD_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GIT_PASSWORD, encrypterRef.get().encrypt(buildConfiguration.getString(TEMPORARY_GIT_PASSWORD)));
+            buildConfiguration.setProperty(REPOSITORY_GIT_PASSWORD, encrypter.encrypt(buildConfiguration.getString(TEMPORARY_GIT_PASSWORD)));
         }
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_SSH_PASSPHRASE_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GIT_SSH_PASSPHRASE, encrypterRef.get().encrypt(buildConfiguration.getString(TEMPORARY_GIT_SSH_PASSPHRASE)));
+            buildConfiguration.setProperty(REPOSITORY_GIT_SSH_PASSPHRASE, encrypter.encrypt(buildConfiguration.getString(TEMPORARY_GIT_SSH_PASSPHRASE)));
         }
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_SSH_KEY_CHANGE))
         {
@@ -582,7 +573,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                     log.error("Cannot read uploaded ssh key file", e);
                     return;
                 }
-                buildConfiguration.setProperty(REPOSITORY_GIT_SSH_KEY, encrypterRef.get().encrypt(key));
+                buildConfiguration.setProperty(REPOSITORY_GIT_SSH_KEY, encrypter.encrypt(key));
             }
             else
             {
@@ -761,9 +752,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         substituted.repositoryUrl = substituteString(accessData.repositoryUrl);
         substituted.branch = substituteString(accessData.branch);
         substituted.username = substituteString(accessData.username);
-        substituted.password = encrypterRef.get().decrypt(accessData.password);
-        substituted.sshKey = encrypterRef.get().decrypt(accessData.sshKey);
-        substituted.sshPassphrase = encrypterRef.get().decrypt(accessData.sshPassphrase);
+        substituted.password = encrypter.decrypt(accessData.password);
+        substituted.sshKey = encrypter.decrypt(accessData.sshKey);
+        substituted.sshPassphrase = encrypter.decrypt(accessData.sshPassphrase);
         substituted.authenticationType = accessData.authenticationType;
         substituted.useShallowClones = accessData.useShallowClones;
         substituted.useSubmodules = accessData.useSubmodules;
@@ -853,6 +844,11 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     public void setI18nResolver(I18nResolver i18nResolver)
     {
         this.i18nResolver = i18nResolver;
+    }
+
+    public void setEncrypter(StringEncrypter encrypter)
+    {
+        this.encrypter = encrypter;
     }
 
     public String getOptionDescription()

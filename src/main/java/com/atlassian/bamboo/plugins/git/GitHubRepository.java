@@ -77,6 +77,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     // ---------------------------------------------------------------------------------------------------- Dependencies
 
     private I18nResolver i18nResolver;
+    private StringEncrypter stringEncrypter;
 
     public void setBuildDirectoryManager(BuildDirectoryManager buildDirectoryManager)
     {
@@ -94,6 +95,12 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     {
         this.i18nResolver = i18nResolver;
         gitRepository.setI18nResolver(i18nResolver);
+    }
+
+    public void setStringEncrypter(StringEncrypter stringEncrypter)
+    {
+        this.stringEncrypter = stringEncrypter;
+        //gitRepository.setStringEncrypter(stringEncrypter);
     }
 
     @Override
@@ -165,7 +172,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
         buildConfiguration.setProperty(REPOSITORY_GITHUB_USERNAME, buildConfiguration.getString(REPOSITORY_GITHUB_USERNAME, "").trim());
         if (buildConfiguration.getBoolean(TEMPORARY_GITHUB_PASSWORD_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GITHUB_PASSWORD, new StringEncrypter().encrypt(buildConfiguration.getString(REPOSITORY_GITHUB_TEMPORARY_PASSWORD)));
+            buildConfiguration.setProperty(REPOSITORY_GITHUB_PASSWORD, stringEncrypter.encrypt(buildConfiguration.getString(REPOSITORY_GITHUB_TEMPORARY_PASSWORD)));
         }
         buildConfiguration.setProperty(REPOSITORY_GITHUB_REPOSITORY, buildConfiguration.getString(REPOSITORY_GITHUB_REPOSITORY, "").trim());
         buildConfiguration.setProperty(REPOSITORY_GITHUB_BRANCH, buildConfiguration.getString(REPOSITORY_GITHUB_BRANCH, "").trim());
