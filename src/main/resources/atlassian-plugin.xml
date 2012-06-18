@@ -47,10 +47,4 @@
   <component-import key="branchIntegrationHelper" interface="com.atlassian.bamboo.plan.branch.BranchIntegrationHelper" />
   <component-import key="stringEncrypter" interface="com.atlassian.bamboo.security.StringEncrypter" />
 
-  <component key="gitRepositoryFactory" class="com.atlassian.bamboo.plugins.git.GitRepositoryFactoryImpl">
-    <description>CreatesProvides build result info for plugin</description>
-    <interface>com.atlassian.bamboo.plugins.git.GitRepositoryFactory</interface>
-  </component>
-
-
 </atlassian-plugin>
