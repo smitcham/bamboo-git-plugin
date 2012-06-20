@@ -530,7 +530,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         final String targetRevision = helper.obtainLatestRevision();
 
         final File cacheDirectory = getCacheDirectory();
-        buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.ccRepositoryNeverChecked", Arrays.asList(targetRevision)));
+        log.debug("Fetching remote repository");
         Result<RepositoryException, CommitContext> result = GitCacheDirectory.getCacheLock(cacheDirectory).withLock(new Supplier<Result<RepositoryException, CommitContext>>()
         {
             public Result<RepositoryException, CommitContext> get()

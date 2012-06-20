@@ -14,7 +14,6 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.storage.file.FileRepository;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.Transport;
-import org.eclipse.jgit.transport.URIish;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +27,6 @@ public class NativeGitOperationHelper extends GitOperationHelper
 {
     @SuppressWarnings("UnusedDeclaration")
     private static final Logger log = Logger.getLogger(GitRepository.class);
-    private static final String SSH_SCHEME = "ssh";
     private static final String GIT_SCHEME = "git";
     // ------------------------------------------------------------------------------------------------------- Constants
     // ------------------------------------------------------------------------------------------------- Type Properties
@@ -132,31 +130,33 @@ public class NativeGitOperationHelper extends GitOperationHelper
     {
         final boolean needsProxy =
                 accessData.authenticationType == GitAuthenticationType.SSH_KEYPAIR ||
-                (isSsh(accessData.repositoryUrl) && accessData.authenticationType == GitAuthenticationType.PASSWORD);
+                (UriUtils.isSsh(accessData.repositoryUrl) && accessData.authenticationType == GitAuthenticationType.PASSWORD);
         if (needsProxy)
         {
-            GitRepository.GitRepositoryAccessData proxyAccessData = accessData.cloneAccessData();
+            final GitRepository.GitRepositoryAccessData proxyAccessData = accessData.cloneAccessData();
 
-            if (!StringUtils.contains(proxyAccessData.repositoryUrl, "://"))
-            {
-                proxyAccessData.repositoryUrl = SSH_SCHEME + "://" + proxyAccessData.repositoryUrl.replaceFirst(":", "/");
-            }
+            ScpAwareUri repositoryUri = ScpAwareUri.create(proxyAccessData.repositoryUrl);
 
-            URI repositoryUri = URI.create(proxyAccessData.repositoryUrl);
-            if (GIT_SCHEME.equals(repositoryUri.getScheme()) || SSH_SCHEME.equals(repositoryUri.getScheme()))
+            if (GIT_SCHEME.equals(repositoryUri.getScheme()) || UriUtils.isSsh(repositoryUri))
             {
                 try
                 {
-                    String username = extractUsername(proxyAccessData.repositoryUrl);
+                    String username = UriUtils.extractUsername(proxyAccessData.repositoryUrl);
                     if (username != null)
                     {
                         proxyAccessData.username = username;
                     }
 
-                    final ProxyConnectionDataBuilder proxyConnectionDataBuilder = sshProxyService.createProxyConnectionDataBuilder()
-                            .withRemoteAddress(repositoryUri.getHost(), repositoryUri.getPort() == -1 ? 22 : repositoryUri.getPort())
-                            .withRemoteUserName(StringUtils.defaultIfEmpty(proxyAccessData.username, repositoryUri.getUserInfo()))
-                            .withErrorReceiver(gitCommandProcessor);
+                    final ProxyConnectionDataBuilder proxyConnectionDataBuilder =
+                            sshProxyService.createProxyConnectionDataBuilder()
+                                    .withRemoteAddress(repositoryUri.getHost(), repositoryUri.getPort() == -1 ? 22 : repositoryUri.getPort())
+                                    .withRemoteUserName(StringUtils.defaultIfEmpty(proxyAccessData.username, repositoryUri.getUserInfo()))
+                                    .withErrorReceiver(gitCommandProcessor);
+
+                    if (repositoryUri.isRelativePath())
+                    {
+                        proxyConnectionDataBuilder.withRemotePathMapping(repositoryUri.getAbsolutePath(), repositoryUri.getRawPath());
+                    }
 
                     switch (accessData.authenticationType)
                     {
@@ -170,19 +170,13 @@ public class NativeGitOperationHelper extends GitOperationHelper
                             throw new IllegalArgumentException("Proxy does not know how to handle " + accessData.authenticationType);
                     }
 
-                    ProxyConnectionData connectionData = proxyConnectionDataBuilder.build();
+                    final ProxyConnectionData connectionData = proxyConnectionDataBuilder.build();
 
                     proxyAccessData.proxyRegistrationInfo = sshProxyService.register(connectionData);
 
-                    URI cooked = new URI(repositoryUri.getScheme(),
-                                         proxyAccessData.proxyRegistrationInfo.getProxyUserName(),
-                                         proxyAccessData.proxyRegistrationInfo.getProxyHost(),
-                                         proxyAccessData.proxyRegistrationInfo.getProxyPort(),
-                                         repositoryUri.getRawPath(),
-                                         repositoryUri.getRawQuery(),
-                                         repositoryUri.getRawFragment());
+                    final URI repositoryViaProxy = UriUtils.getUriViaProxy(proxyAccessData, repositoryUri);
 
-                    proxyAccessData.repositoryUrl = cooked.toString();
+                    proxyAccessData.repositoryUrl = repositoryViaProxy.toString();
                 }
                 catch (IOException e)
                 {
@@ -222,10 +216,6 @@ public class NativeGitOperationHelper extends GitOperationHelper
         return accessData;
     }
 
-    private boolean isSsh(final String repositoryUrl)
-    {
-        return repositoryUrl.startsWith(SSH_SCHEME + "://");
-    }
 
     /**
      * @return true if modified files exist in the directory or current revision in the directory has changed
@@ -271,20 +261,6 @@ public class NativeGitOperationHelper extends GitOperationHelper
         return hasModifiedFiles;
     }
 
-    @Nullable
-    private String extractUsername(final String repositoryUrl) throws URISyntaxException
-    {
-        URIish uri = new URIish(repositoryUrl);
-
-        final String auth = uri.getUser();
-        if (auth == null)
-        {
-            return null;
-        }
-        return auth;
-    }
-
-
     @NotNull
     private URI wrapWithUsernameAndPassword(GitRepository.GitRepositoryAccessData repositoryAccessData)
     {
@@ -320,7 +296,7 @@ public class NativeGitOperationHelper extends GitOperationHelper
         
         final boolean passwordAuthentication = repositoryAccessData.authenticationType == GitAuthenticationType.PASSWORD;
 
-        if (!passwordAuthentication || isSsh(repositoryUrl))
+        if (!passwordAuthentication || UriUtils.isSsh(repositoryUrl))
         {
             return username;
         }
