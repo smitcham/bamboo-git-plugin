@@ -10,8 +10,8 @@ import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
 import com.atlassian.bamboo.plugins.git.GitRepository.GitRepositoryAccessData;
 import com.atlassian.bamboo.project.Project;
 import com.atlassian.bamboo.repository.RepositoryException;
-import com.atlassian.bamboo.security.StringEncrypter;
-import com.atlassian.bamboo.security.StringEncrypterImpl;
+import com.atlassian.bamboo.security.EncryptionService;
+import com.atlassian.bamboo.security.EncryptionServiceImpl;
 import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.util.BambooFileUtils;
 import com.atlassian.bamboo.utils.i18n.DefaultI18nBean;
@@ -59,6 +59,7 @@ public class GitAbstractTest
 
     protected static final String COMITTER_NAME = "Committer";
     protected static final String COMITTER_EMAIL = "committer@example.com";
+    protected static final EncryptionService encryptionService = new EncryptionServiceImpl();
 
     public static void setRepositoryProperties(GitRepository gitRepository, File repositorySourceDir, String branch) throws Exception
     {
@@ -77,19 +78,17 @@ public class GitAbstractTest
 
     public static void setRepositoryProperties(GitRepository gitRepository, String repositoryUrl, String branch, String sshKey, String sshPassphrase, Map<String, String> paramMap) throws Exception
     {
-        StringEncrypter encrypter = new StringEncrypterImpl();
-
         Map<String, String> params = Maps.newHashMap(paramMap);
 
         params.put("repository.git.branch", branch);
         if (sshKey != null)
         {
-            params.put("repository.git.ssh.key", encrypter.encrypt(sshKey));
+            params.put("repository.git.ssh.key", encryptionService.encrypt(sshKey));
             params.put("repository.git.authenticationType", GitAuthenticationType.SSH_KEYPAIR.name());
         }
         if (sshPassphrase != null)
         {
-            params.put("repository.git.ssh.passphrase", encrypter.encrypt(sshPassphrase));
+            params.put("repository.git.ssh.passphrase", encryptionService.encrypt(sshPassphrase));
         }
         setRepositoryProperties(gitRepository, repositoryUrl, params);
     }
@@ -172,7 +171,7 @@ public class GitAbstractTest
         Mockito.when(branchIntegrationHelper.getCommitterEmail(fixture)).thenReturn(COMITTER_EMAIL);
         fixture.setBranchIntegrationHelper(branchIntegrationHelper);
 
-        fixture.setEncrypter(new StringEncrypterImpl());
+        fixture.setEncryptionService(encryptionService);
 
         return fixture;
     }

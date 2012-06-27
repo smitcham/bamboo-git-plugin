@@ -6,7 +6,7 @@ import com.atlassian.bamboo.repository.RepositoryDataEntity;
 import com.atlassian.bamboo.repository.RepositoryDataImpl;
 import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.rest.util.Get;
-import com.atlassian.bamboo.security.StringEncrypter;
+import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.SystemProperty;
 import com.atlassian.bamboo.ww2.actions.PlanActionSupport;
@@ -44,7 +44,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
     private GitHubRepository githubRepository;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     private RepositoryDefinitionManager repositoryDefinitionManager;
-    private StringEncrypter stringEncrypter;
+    private EncryptionService encryptionService;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -72,7 +72,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
                 GitHubRepository ghRepository = Narrow.to(repository, GitHubRepository.class);
                 if (ghRepository != null)
                 {
-                    password = stringEncrypter.decrypt(ghRepository.getPassword());
+                    password = encryptionService.decrypt(ghRepository.getPassword());
                 }
             }
         }
@@ -277,8 +277,8 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
         this.repositoryDefinitionManager = repositoryDefinitionManager;
     }
 
-    public void setStringEncrypter(StringEncrypter stringEncrypter)
+    public void setEncryptionService(EncryptionService encryptionService)
     {
-        this.stringEncrypter = stringEncrypter;
+        this.encryptionService = encryptionService;
     }
 }

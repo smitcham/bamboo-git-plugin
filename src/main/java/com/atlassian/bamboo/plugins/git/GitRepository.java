@@ -23,7 +23,7 @@ import com.atlassian.bamboo.repository.PushCapableRepository;
 import com.atlassian.bamboo.repository.Repository;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.repository.SelectableAuthenticationRepository;
-import com.atlassian.bamboo.security.StringEncrypter;
+import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.ssh.ProxyRegistrationInfo;
 import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.utils.SystemProperty;
@@ -157,7 +157,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     private transient CapabilityContext capabilityContext;
     private transient I18nResolver i18nResolver;
     private transient SshProxyService sshProxyService;
-    private transient StringEncrypter encrypter;
+    private transient EncryptionService encryptionService;
     // ---------------------------------------------------------------------------------------------------- Constructors
 
     // ----------------------------------------------------------------------------------------------- Interface Methods
@@ -552,11 +552,11 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         buildConfiguration.setProperty(REPOSITORY_GIT_COMMAND_TIMEOUT, buildConfiguration.getInt(REPOSITORY_GIT_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT_IN_MINUTES));
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_PASSWORD_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GIT_PASSWORD, encrypter.encrypt(buildConfiguration.getString(TEMPORARY_GIT_PASSWORD)));
+            buildConfiguration.setProperty(REPOSITORY_GIT_PASSWORD, encryptionService.encrypt(buildConfiguration.getString(TEMPORARY_GIT_PASSWORD)));
         }
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_SSH_PASSPHRASE_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GIT_SSH_PASSPHRASE, encrypter.encrypt(buildConfiguration.getString(TEMPORARY_GIT_SSH_PASSPHRASE)));
+            buildConfiguration.setProperty(REPOSITORY_GIT_SSH_PASSPHRASE, encryptionService.encrypt(buildConfiguration.getString(TEMPORARY_GIT_SSH_PASSPHRASE)));
         }
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_SSH_KEY_CHANGE))
         {
@@ -573,7 +573,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                     log.error("Cannot read uploaded ssh key file", e);
                     return;
                 }
-                buildConfiguration.setProperty(REPOSITORY_GIT_SSH_KEY, encrypter.encrypt(key));
+                buildConfiguration.setProperty(REPOSITORY_GIT_SSH_KEY, encryptionService.encrypt(key));
             }
             else
             {
@@ -752,9 +752,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         substituted.repositoryUrl = substituteString(accessData.repositoryUrl);
         substituted.branch = substituteString(accessData.branch);
         substituted.username = substituteString(accessData.username);
-        substituted.password = encrypter.decrypt(accessData.password);
-        substituted.sshKey = encrypter.decrypt(accessData.sshKey);
-        substituted.sshPassphrase = encrypter.decrypt(accessData.sshPassphrase);
+        substituted.password = encryptionService.decrypt(accessData.password);
+        substituted.sshKey = encryptionService.decrypt(accessData.sshKey);
+        substituted.sshPassphrase = encryptionService.decrypt(accessData.sshPassphrase);
         substituted.authenticationType = accessData.authenticationType;
         substituted.useShallowClones = accessData.useShallowClones;
         substituted.useSubmodules = accessData.useSubmodules;
@@ -846,9 +846,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         this.i18nResolver = i18nResolver;
     }
 
-    public void setEncrypter(StringEncrypter encrypter)
+    public void setEncryptionService(EncryptionService encryptionService)
     {
-        this.encrypter = encrypter;
+        this.encryptionService = encryptionService;
     }
 
     public String getOptionDescription()

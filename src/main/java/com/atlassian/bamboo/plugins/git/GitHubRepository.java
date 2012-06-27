@@ -14,7 +14,7 @@ import com.atlassian.bamboo.repository.CachingAwareRepository;
 import com.atlassian.bamboo.repository.PushCapableRepository;
 import com.atlassian.bamboo.repository.Repository;
 import com.atlassian.bamboo.repository.RepositoryException;
-import com.atlassian.bamboo.security.StringEncrypter;
+import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.template.TemplateRenderer;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
@@ -77,7 +77,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     // ---------------------------------------------------------------------------------------------------- Dependencies
 
     private I18nResolver i18nResolver;
-    private StringEncrypter stringEncrypter;
+    private EncryptionService encryptionService;
 
     public void setBuildDirectoryManager(BuildDirectoryManager buildDirectoryManager)
     {
@@ -97,10 +97,9 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
         gitRepository.setI18nResolver(i18nResolver);
     }
 
-    public void setStringEncrypter(StringEncrypter stringEncrypter)
+    public void setEncryptionService(EncryptionService encryptionService)
     {
-        this.stringEncrypter = stringEncrypter;
-        //gitRepository.setStringEncrypter(stringEncrypter);
+        this.encryptionService = encryptionService;
     }
 
     @Override
@@ -172,7 +171,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
         buildConfiguration.setProperty(REPOSITORY_GITHUB_USERNAME, buildConfiguration.getString(REPOSITORY_GITHUB_USERNAME, "").trim());
         if (buildConfiguration.getBoolean(TEMPORARY_GITHUB_PASSWORD_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GITHUB_PASSWORD, stringEncrypter.encrypt(buildConfiguration.getString(REPOSITORY_GITHUB_TEMPORARY_PASSWORD)));
+            buildConfiguration.setProperty(REPOSITORY_GITHUB_PASSWORD, encryptionService.encrypt(buildConfiguration.getString(REPOSITORY_GITHUB_TEMPORARY_PASSWORD)));
         }
         buildConfiguration.setProperty(REPOSITORY_GITHUB_REPOSITORY, buildConfiguration.getString(REPOSITORY_GITHUB_REPOSITORY, "").trim());
         buildConfiguration.setProperty(REPOSITORY_GITHUB_BRANCH, buildConfiguration.getString(REPOSITORY_GITHUB_BRANCH, "").trim());
