@@ -4,6 +4,8 @@ import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.core.RepositoryUrlObfuscator;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.ProxyErrorReceiver;
+import com.atlassian.bamboo.util.BambooFileUtils;
+import com.atlassian.bamboo.util.BambooFilenameUtils;
 import com.atlassian.utils.process.ExternalProcess;
 import com.atlassian.utils.process.ExternalProcessBuilder;
 import com.atlassian.utils.process.LineOutputHandler;
@@ -16,13 +18,16 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +42,13 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
     // ------------------------------------------------------------------------------------------------------- Constants
 
     static final Pattern gitVersionPattern = Pattern.compile("^git version (.*)");
+    private static final String SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o UserKnownHostsFile=/dev/null";
+    private static final String SSH_WIN =
+            "ssh " + SSH_OPTIONS + " %* <nul\r\n";
+
+    private static final String SSH_UNIX =
+            "#!/bin/sh\n" +
+                    "exec ssh " + SSH_OPTIONS + " $@ </dev/null\n";
 
     // ------------------------------------------------------------------------------------------------- Type Properties
 
@@ -57,6 +69,25 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         Preconditions.checkArgument(commandTimeoutInMinutes>0, "Command timeout must be greater than 0");
         this.commandTimeoutInMinutes = commandTimeoutInMinutes;
         this.maxVerboseOutput = maxVerboseOutput;
+    }
+
+    private String getDefaultSshWrapperScriptContent()
+    {
+        return SystemUtils.IS_OS_WINDOWS ? SSH_WIN : SSH_UNIX;
+    }
+
+    private String getSshScriptToRun()
+    {
+        String scriptContent = StringUtils.isBlank(sshCommand) ? getDefaultSshWrapperScriptContent() : sshCommand;
+        try
+        {
+            final File sshScript = BambooFileUtils.getSharedTemporaryFile(scriptContent, "bamboo-ssh.", BambooFilenameUtils.getScriptSuffix(), true, null);
+            return sshScript.getAbsolutePath();
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     // ----------------------------------------------------------------------------------------------- Interface Methods
@@ -184,9 +215,10 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
     {
         return new GitCommandBuilder(commands)
                 .executable(gitExecutable)
-                .sshCommand(sshCommand);
+                .sshCommand(getSshScriptToRun());
     }
 
+    @Override
     public void reportProxyError(String message, Throwable exception)
     {
         proxyErrorMessage = message;
