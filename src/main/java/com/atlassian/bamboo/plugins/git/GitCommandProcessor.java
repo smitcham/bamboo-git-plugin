@@ -44,11 +44,11 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
     static final Pattern gitVersionPattern = Pattern.compile("^git version (.*)");
     private static final String SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o UserKnownHostsFile=/dev/null";
     private static final String SSH_WIN =
-            "ssh " + SSH_OPTIONS + " %* <nul\r\n";
+            "@ssh " + SSH_OPTIONS + " %*\r\n";
 
     private static final String SSH_UNIX =
             "#!/bin/sh\n" +
-                    "exec ssh " + SSH_OPTIONS + " $@ </dev/null\n";
+                    "exec ssh " + SSH_OPTIONS + " $@\n";
 
     // ------------------------------------------------------------------------------------------------- Type Properties
 
@@ -76,9 +76,21 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         return SystemUtils.IS_OS_WINDOWS ? SSH_WIN : SSH_UNIX;
     }
 
+    private String getCustomisedSshWrapperScriptContent()
+    {
+        if (sshCommand.contains(" "))
+        {
+            return SystemUtils.IS_OS_WINDOWS ? "@" + sshCommand + " %*\r\n" : "#!/bin/sh\n"+ sshCommand + " $@\n";
+        }
+        else
+        {
+            return sshCommand;
+        }
+    }
+
     private String getSshScriptToRun()
     {
-        String scriptContent = StringUtils.isBlank(sshCommand) ? getDefaultSshWrapperScriptContent() : sshCommand;
+        String scriptContent = StringUtils.isBlank(sshCommand) ? getDefaultSshWrapperScriptContent() : getCustomisedSshWrapperScriptContent();
         try
         {
             final File sshScript = BambooFileUtils.getSharedTemporaryFile(scriptContent, "bamboo-ssh.", BambooFilenameUtils.getScriptSuffix(), true, null);
