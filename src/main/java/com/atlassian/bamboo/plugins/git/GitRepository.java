@@ -389,8 +389,15 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     }
 
     @NotNull
-    @Override
+    @Deprecated
     public List<VcsBranch> getOpenBranches() throws RepositoryException
+    {
+        return getOpenBranches(null);
+    }
+
+    @NotNull
+    @Override
+    public List<VcsBranch> getOpenBranches(@Nullable final String context) throws RepositoryException
     {
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
         final JGitOperationHelper helper = new JGitOperationHelper(substitutedAccessData, new NullBuildLogger(), textProvider);
