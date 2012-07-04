@@ -101,7 +101,7 @@ public class GitOperationHelperTest extends GitAbstractTest
     {
         String email = author.substring(author.indexOf("<") + 1, author.indexOf(">"));
         return CommitContextImpl.builder()
-                .author(author, email)
+                .author(author)
                 .comment(comment)
                 .date(dateFormat.parse(date))
                 .files(Arrays.asList(commitFiles))
@@ -271,7 +271,6 @@ public class GitOperationHelperTest extends GitAbstractTest
             CommitContext expectedCommit = expectedCommits[i];
             assertEquals(actualCommit.getComment(), expectedCommit.getComment());
             assertEquals(actualCommit.getAuthor().getName(), expectedCommit.getAuthor().getName());
-            assertEquals(actualCommit.getAuthor().getEmail(), expectedCommit.getAuthor().getEmail());
             assertEquals(actualCommit.getDate(), expectedCommit.getDate());
 
             List<CommitFile> expectedFiles = expectedCommit.getFiles();
