@@ -128,9 +128,9 @@ public class NativeGitOperationHelper extends GitOperationHelper
 
     protected GitRepository.GitRepositoryAccessData adjustRepositoryAccess(@NotNull final GitRepository.GitRepositoryAccessData accessData) throws RepositoryException
     {
-        final boolean needsProxy =
-                accessData.authenticationType == GitAuthenticationType.SSH_KEYPAIR ||
-                (UriUtils.isSsh(accessData.repositoryUrl) && accessData.authenticationType == GitAuthenticationType.PASSWORD);
+        final boolean sshKeypair = accessData.authenticationType == GitAuthenticationType.SSH_KEYPAIR;
+        final boolean sshWithPassword = UriUtils.isSsh(accessData.repositoryUrl) && accessData.authenticationType == GitAuthenticationType.PASSWORD;
+        final boolean needsProxy = sshKeypair || sshWithPassword;
         if (needsProxy)
         {
             final GitRepository.GitRepositoryAccessData proxyAccessData = accessData.cloneAccessData();

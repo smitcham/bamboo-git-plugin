@@ -75,4 +75,4 @@ for dependency in $snapshotDependencies $parentPoms; do
 done
 
 mvn release:clean
-mvn -o release:prepare -Dbamboo.version=$(getFakeVersion $snapshotBambooVersion)
+mvn org.apache.maven.plugins:maven-release-plugin:2.2:prepare -Dbamboo.version=$(getFakeVersion $snapshotBambooVersion)

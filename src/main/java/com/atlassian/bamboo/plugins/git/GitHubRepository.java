@@ -298,8 +298,15 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     }
 
     @NotNull
-    @Override
+    @Deprecated
     public List<VcsBranch> getOpenBranches() throws RepositoryException
+    {
+        return getOpenBranches(null);
+    }
+
+    @NotNull
+    @Override
+    public List<VcsBranch> getOpenBranches(@Nullable final String context) throws RepositoryException
     {
         return gitRepository.getOpenBranches();
     }

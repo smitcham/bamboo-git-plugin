@@ -1,12 +1,13 @@
 package com.atlassian.bamboo.plugins.git;
 
+import com.atlassian.bamboo.FeatureManager;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.opensymphony.xwork.TextProvider;
-import org.mockito.Mockito;
 import org.mockito.internal.stubbing.defaultanswers.ReturnsMocks;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
 import java.util.List;
 
@@ -14,6 +15,8 @@ import static com.atlassian.bamboo.plugins.git.GitAuthenticationType.NONE;
 import static com.atlassian.bamboo.plugins.git.GitAuthenticationType.PASSWORD;
 import static com.atlassian.bamboo.plugins.git.GitAuthenticationType.SSH_KEYPAIR;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class GitRepositoryValidationTest
 {
@@ -219,7 +222,10 @@ public class GitRepositoryValidationTest
     private static GitRepository createRepository()
     {
         GitRepository repo = new GitRepository();
-        repo.setTextProvider(Mockito.mock(TextProvider.class, new ReturnsMocks()));
+        repo.setTextProvider(mock(TextProvider.class, new ReturnsMocks()));
+        FeatureManager featureManager = mock(FeatureManager.class);
+        when(featureManager.isSshTransportSupported()).thenReturn(true);
+        repo.setFeatureManager(featureManager);
         return repo;
     }
 }

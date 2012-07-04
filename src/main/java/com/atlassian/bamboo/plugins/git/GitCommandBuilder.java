@@ -2,6 +2,7 @@ package com.atlassian.bamboo.plugins.git;
 
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,6 +13,8 @@ import java.util.Map;
 
 public class GitCommandBuilder
 {
+    private static final Logger log = Logger.getLogger(GitCommandBuilder.class);
+
     private final List<String> commands = new ArrayList<String>();
     private final Map<String, String> env = Maps.newHashMap();
     private String executable;
@@ -164,6 +167,7 @@ public class GitCommandBuilder
     {
         if (StringUtils.isNotBlank(sshCommand))
         {
+            log.debug("GIT_SSH="+sshCommand);
             env.put("GIT_SSH", sshCommand);
         }
 
