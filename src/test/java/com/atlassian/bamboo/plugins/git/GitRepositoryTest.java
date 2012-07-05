@@ -160,12 +160,10 @@ public class GitRepositoryTest extends GitAbstractTest
     //
     //    GitRepository out = (GitRepository) object;
     //
-    //    StringEncrypter encrypter = new StringEncrypter();
-    //
     //    assertEquals(out.getRepositoryUrl(), repositoryUrl);
     //    assertEquals(out.getBranch(), branch);
-    //    assertEquals(encrypter.decrypt(out.accessData.sshKey), sshKey);
-    //    assertEquals(encrypter.decrypt(out.accessData.sshPassphrase), sshPassphrase);
+    //    assertEquals(encryptionService.decrypt(out.accessData.sshKey), sshKey);
+    //    assertEquals(encryptionService.decrypt(out.accessData.sshPassphrase), sshPassphrase);
     //    assertEquals(out.accessData.authenticationType, GitAuthenticationType.SSH_KEYPAIR);
     //}
 

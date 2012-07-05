@@ -5,7 +5,7 @@ import com.atlassian.bamboo.repository.RepositoryData;
 import com.atlassian.bamboo.repository.RepositoryDataEntity;
 import com.atlassian.bamboo.repository.RepositoryDataImpl;
 import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
-import com.atlassian.bamboo.security.StringEncrypter;
+import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.ww2.actions.PlanActionSupport;
 import com.atlassian.bamboo.ww2.aware.permissions.PlanEditSecurityAware;
@@ -33,8 +33,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
     private long repositoryId;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     private RepositoryDefinitionManager repositoryDefinitionManager;
-
-
+    private EncryptionService encryptionService;
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -62,7 +61,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
                 GitHubRepository ghRepository = Narrow.to(repository, GitHubRepository.class);
                 if (ghRepository != null)
                 {
-                    password = new StringEncrypter().decrypt(ghRepository.getPassword());
+                    password = encryptionService.decrypt(ghRepository.getPassword());
                 }
             }
         }

@@ -23,7 +23,7 @@ import com.atlassian.bamboo.repository.PushCapableRepository;
 import com.atlassian.bamboo.repository.Repository;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.repository.SelectableAuthenticationRepository;
-import com.atlassian.bamboo.security.StringEncrypter;
+import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.ssh.ProxyRegistrationInfo;
 import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.utils.SystemProperty;
@@ -38,7 +38,7 @@ import com.atlassian.bamboo.v2.build.agent.remote.RemoteBuildDirectoryManager;
 import com.atlassian.bamboo.v2.build.repository.CustomSourceDirectoryAwareRepository;
 import com.atlassian.bamboo.v2.build.repository.RequirementsAwareRepository;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
-import com.atlassian.util.concurrent.LazyReference;
+import com.atlassian.sal.api.message.I18nResolver;
 import com.atlassian.util.concurrent.Supplier;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -47,8 +47,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.opensymphony.webwork.ServletActionContext;
-import com.opensymphony.xwork.TextProvider;
-import com.opensymphony.xwork.util.LocalizedTextUtil;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -109,7 +107,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     private static final GitAuthenticationType defaultAuthenticationType = GitAuthenticationType.NONE;
     private static boolean USE_SHALLOW_CLONES = new SystemProperty(false, "atlassian.bamboo.git.useShallowClones", "ATLASSIAN_BAMBOO_GIT_USE_SHALLOW_CLONES").getValue(true);
 
-    final static int DEFAULT_COMMAND_TIMEOUT_IN_MINUTES = 180;
+    static final int DEFAULT_COMMAND_TIMEOUT_IN_MINUTES = 180;
 
     // ------------------------------------------------------------------------------------------------- Type Properties
 
@@ -157,19 +155,12 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     // Maven 2 import
     private transient String pathToPom;
 
-    //todo: Spring-inject StringEncrypter singleton, https://atlaseye.atlassian.com/cru/CR-BAM-2232#c37222
-    private final transient LazyReference<StringEncrypter> encrypterRef = new LazyReference<StringEncrypter>()
-    {
-        @Override
-        protected StringEncrypter create() throws Exception
-        {
-            return new StringEncrypter();
-        }
-    };
 
     // ---------------------------------------------------------------------------------------------------- Dependencies
     private transient CapabilityContext capabilityContext;
+    private transient I18nResolver i18nResolver;
     private transient SshProxyService sshProxyService;
+    private transient EncryptionService encryptionService;
     // ---------------------------------------------------------------------------------------------------- Constructors
 
     // ----------------------------------------------------------------------------------------------- Interface Methods
@@ -178,7 +169,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     @NotNull
     public String getName()
     {
-        return textProvider.getText(REPOSITORY_GIT_NAME);
+        return i18nResolver.getText(REPOSITORY_GIT_NAME);
     }
 
     @Override
@@ -214,7 +205,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         {
             final BuildLogger buildLogger = buildLoggerManager.getBuildLogger(PlanKeys.getPlanKey(planKey));
             final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
-            final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, textProvider);
+            final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, i18nResolver);
 
             final String targetRevision = helper.obtainLatestRevision();
 
@@ -226,7 +217,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             final File cacheDirectory = getCacheDirectory();
             if (lastVcsRevisionKey == null)
             {
-                buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.ccRepositoryNeverChecked", Arrays.asList(targetRevision)));
+                buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.ccRepositoryNeverChecked", targetRevision));
                 try
                 {
                     GitCacheDirectory.getCacheLock(cacheDirectory).withLock(new Callable<Void>()
@@ -260,16 +251,16 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                         try
                         {
                             rethrowOrRemoveDirectory(e, buildLogger, cacheDirectory, "repository.git.messages.ccRecover.failedToCollectChangesets");
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.ccRecover.cleanedCacheDirectory", Arrays.asList(cacheDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.ccRecover.cleanedCacheDirectory", cacheDirectory));
                             helper.fetch(cacheDirectory, false);
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.ccRecover.fetchedRemoteRepository", Arrays.asList(cacheDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.ccRecover.fetchedRemoteRepository", cacheDirectory));
                             BuildRepositoryChanges extractedChanges = helper.extractCommits(cacheDirectory, lastVcsRevisionKey, targetRevision);
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.ccRecover.completed"));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.ccRecover.completed"));
                             return extractedChanges;
                         }
                         catch (Exception e2)
                         {
-                            log.error(buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.ccRecover.failedToExtractChangesets")), e2);
+                            log.error(buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.ccRecover.failedToExtractChangesets")), e2);
                             return null;
                         }
                     }
@@ -284,14 +275,14 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             {
                 return new BuildRepositoryChangesImpl(targetRevision, Collections.singletonList((CommitContext) CommitContextImpl.builder()
                         .author(Author.UNKNOWN_AUTHOR)
-                        .comment(textProvider.getText("repository.git.messages.unknownChanges", Arrays.asList(lastVcsRevisionKey, targetRevision)))
+                        .comment(i18nResolver.getText("repository.git.messages.unknownChanges", lastVcsRevisionKey, targetRevision))
                         .date(new Date())
                         .build()));
             }
         }
         catch (RuntimeException e)
         {
-            throw new RepositoryException(textProvider.getText("repository.git.messages.runtimeException"), e);
+            throw new RepositoryException(i18nResolver.getText("repository.git.messages.runtimeException"), e);
         }
     }
 
@@ -310,7 +301,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         {
             final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
             final BuildLogger buildLogger = buildLoggerManager.getBuildLogger(buildContext.getPlanResultKey());
-            final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, textProvider);
+            final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, i18nResolver);
 
             final boolean doShallowFetch = USE_SHALLOW_CLONES && substitutedAccessData.useShallowClones && depth == 1;
             substitutedAccessData.useShallowClones = doShallowFetch;
@@ -333,9 +324,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                         catch (Exception e)
                         {
                             rethrowOrRemoveDirectory(e, buildLogger, cacheDirectory, "repository.git.messages.rsRecover.failedToFetchCache");
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.cleanedCacheDirectory", Arrays.asList(cacheDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.cleanedCacheDirectory", cacheDirectory));
                             helper.fetch(cacheDirectory, false);
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.fetchingCacheCompleted", Arrays.asList(cacheDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.fetchingCacheCompleted", cacheDirectory));
                         }
 
                         try
@@ -345,9 +336,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                         catch (Exception e)
                         {
                             rethrowOrRemoveDirectory(e, buildLogger, sourceDirectory, "repository.git.messages.rsRecover.failedToCheckout");
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.cleanedSourceDirectory", Arrays.asList(sourceDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.cleanedSourceDirectory", sourceDirectory));
                             String returnRevision = helper.checkout(cacheDirectory, sourceDirectory, targetRevision, null);
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.checkoutCompleted"));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.checkoutCompleted"));
                             return returnRevision;
                         }
                     }
@@ -364,11 +355,11 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                 catch (Exception e)
                 {
                     rethrowOrRemoveDirectory(e, buildLogger, sourceDirectory, "repository.git.messages.rsRecover.failedToCheckout");
-                    buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.cleanedSourceDirectory", Arrays.asList(sourceDirectory)));
+                    buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.cleanedSourceDirectory", sourceDirectory));
                     helper.fetch(sourceDirectory, false);
-                    buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.fetchingCompleted", Arrays.asList(sourceDirectory)));
+                    buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.fetchingCompleted", sourceDirectory));
                     String returnRevision = helper.checkout(null, sourceDirectory, targetRevision, null);
-                    buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.checkoutCompleted"));
+                    buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.checkoutCompleted"));
                     return returnRevision;
                 }
             }
@@ -379,7 +370,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         }
         catch (Exception e)
         {
-            throw new RepositoryException(textProvider.getText("repository.git.messages.runtimeException"), e);
+            throw new RepositoryException(i18nResolver.getText("repository.git.messages.runtimeException"), e);
         }
     }
 
@@ -400,7 +391,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     public List<VcsBranch> getOpenBranches(@Nullable final String context) throws RepositoryException
     {
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
-        final JGitOperationHelper helper = new JGitOperationHelper(substitutedAccessData, new NullBuildLogger(), textProvider);
+        final JGitOperationHelper helper = new JGitOperationHelper(substitutedAccessData, new NullBuildLogger(), i18nResolver);
         return helper.getOpenBranches(substitutedAccessData);
     }
 
@@ -408,7 +399,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     public void pushRevision(@NotNull File sourceDirectory, @Nullable String vcsRevisionKey) throws RepositoryException
     {
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
-        final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, new NullBuildLogger(), textProvider);
+        final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, new NullBuildLogger(), i18nResolver);
         helper.pushRevision(sourceDirectory, vcsRevisionKey);
     }
     
@@ -418,7 +409,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     {
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
         final GitOperationHelper helper =
-                GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, new NullBuildLogger(), textProvider);
+                GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, new NullBuildLogger(), i18nResolver);
         return helper.commit(sourceDirectory, message, branchIntegrationHelper.getCommitterName(this), branchIntegrationHelper.getCommitterEmail(this));
     }
 
@@ -459,7 +450,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     {
         final BuildLogger buildLogger = buildLoggerManager.getBuildLogger(PlanKeys.getPlanKey(buildContext.getPlanKey()));
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
-        final GitOperationHelper connector = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, textProvider);
+        final GitOperationHelper connector = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, i18nResolver);
 
         final boolean doShallowFetch = false; //USE_SHALLOW_CLONES && substitutedAccessData.useShallowClones;
         substitutedAccessData.useShallowClones = doShallowFetch;
@@ -483,9 +474,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                         catch (Exception e)
                         {
                             rethrowOrRemoveDirectory(e, buildLogger, cacheDirectory, "repository.git.messages.rsRecover.failedToFetchCache");
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.cleanedCacheDirectory", Arrays.asList(cacheDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.cleanedCacheDirectory", cacheDirectory));
                             connector.fetch(cacheDirectory, false);
-                            buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.fetchingCacheCompleted", Arrays.asList(cacheDirectory)));
+                            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.fetchingCacheCompleted", cacheDirectory));
                         }
                         return null;
                     }
@@ -501,14 +492,14 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                 catch (Exception e)
                 {
                     rethrowOrRemoveDirectory(e, buildLogger, workspaceDir, "repository.git.messages.rsRecover.failedToFetchWorkingDir");
-                    buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.rsRecover.cleanedSourceDirectory", Arrays.asList(workspaceDir)));
+                    buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.rsRecover.cleanedSourceDirectory", workspaceDir));
                     connector.fetch(workspaceDir, false);
                 }
             }
         }
         catch (Exception e)
         {
-            throw new RepositoryException(textProvider.getText("repository.git.messages.runtimeException"), e);
+            throw new RepositoryException(i18nResolver.getText("repository.git.messages.runtimeException"), e);
         }
 
         return connector.merge(workspaceDir, targetRevision, branchIntegrationHelper.getCommitterName(this), branchIntegrationHelper.getCommitterEmail(this));
@@ -532,7 +523,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
 
         final BuildLogger buildLogger = new NullBuildLogger();
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
-        final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, textProvider);
+        final GitOperationHelper helper = GitOperationHelperFactory.createGitOperationHelper(this, substitutedAccessData, sshProxyService, buildLogger, i18nResolver);
 
         final String targetRevision = helper.obtainLatestRevision();
 
@@ -571,11 +562,11 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         buildConfiguration.setProperty(REPOSITORY_GIT_COMMAND_TIMEOUT, buildConfiguration.getInt(REPOSITORY_GIT_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT_IN_MINUTES));
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_PASSWORD_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GIT_PASSWORD, encrypterRef.get().encrypt(buildConfiguration.getString(TEMPORARY_GIT_PASSWORD)));
+            buildConfiguration.setProperty(REPOSITORY_GIT_PASSWORD, encryptionService.encrypt(buildConfiguration.getString(TEMPORARY_GIT_PASSWORD)));
         }
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_SSH_PASSPHRASE_CHANGE))
         {
-            buildConfiguration.setProperty(REPOSITORY_GIT_SSH_PASSPHRASE, encrypterRef.get().encrypt(buildConfiguration.getString(TEMPORARY_GIT_SSH_PASSPHRASE)));
+            buildConfiguration.setProperty(REPOSITORY_GIT_SSH_PASSPHRASE, encryptionService.encrypt(buildConfiguration.getString(TEMPORARY_GIT_SSH_PASSPHRASE)));
         }
         if (buildConfiguration.getBoolean(TEMPORARY_GIT_SSH_KEY_CHANGE))
         {
@@ -592,7 +583,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                     log.error("Cannot read uploaded ssh key file", e);
                     return;
                 }
-                buildConfiguration.setProperty(REPOSITORY_GIT_SSH_KEY, encrypterRef.get().encrypt(key));
+                buildConfiguration.setProperty(REPOSITORY_GIT_SSH_KEY, encryptionService.encrypt(key));
             }
             else
             {
@@ -651,7 +642,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
 
         if (StringUtils.isBlank(repositoryUrl))
         {
-            errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL, textProvider.getText("repository.git.messages.missingRepositoryUrl"));
+            errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL, i18nResolver.getText("repository.git.messages.missingRepositoryUrl"));
         }
         else
         {
@@ -662,13 +653,13 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                 final URIish uri = new URIish(repositoryUrl);
                 if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported())
                 {
-                    errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, textProvider.getText("repository.git.messages.unsupportedSshAuthenticationType"));
+                    errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, i18nResolver.getText("repository.git.messages.unsupportedSshAuthenticationType"));
                 }
                 else
                 {
                     if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())))
                     {
-                        errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, textProvider.getText("repository.git.messages.unsupportedHttpAuthenticationType"));
+                        errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, i18nResolver.getText("repository.git.messages.unsupportedHttpAuthenticationType"));
                     }
                     else if (authenticationType == GitAuthenticationType.PASSWORD)
                     {
@@ -677,21 +668,21 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                         if (duplicateUsername || duplicatePassword)
                         {
                             errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL,
-                                    (duplicateUsername ? textProvider.getText("repository.git.messages.duplicateUsernameField") : "")
+                                    (duplicateUsername ? i18nResolver.getText("repository.git.messages.duplicateUsernameField") : "")
                                             + ((duplicateUsername && duplicatePassword) ? " " : "")
-                                            + (duplicatePassword ? textProvider.getText("repository.git.messages.duplicatePasswordField") : ""));
+                                            + (duplicatePassword ? i18nResolver.getText("repository.git.messages.duplicatePasswordField") : ""));
                         }
                         if (duplicateUsername)
                         {
-                            errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.duplicateUsernameField"));
+                            errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.duplicateUsernameField"));
                         }
                         if (duplicatePassword)
                         {
-                            errorCollection.addError(TEMPORARY_GIT_PASSWORD_CHANGE, textProvider.getText("repository.git.messages.duplicatePasswordField"));
+                            errorCollection.addError(TEMPORARY_GIT_PASSWORD_CHANGE, i18nResolver.getText("repository.git.messages.duplicatePasswordField"));
                         }
                         if (uri.getHost() == null && hasUsername)
                         {
-                            errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.unsupportedUsernameField"));
+                            errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.unsupportedUsernameField"));
                         }
                     }
                 }
@@ -700,14 +691,14 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             {
                 if (hasUsername)
                 {
-                    errorCollection.addError(REPOSITORY_GIT_USERNAME, textProvider.getText("repository.git.messages.unsupportedUsernameField"));
+                    errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.unsupportedUsernameField"));
                 }
             }
         }
 
         if (buildConfiguration.getString(REPOSITORY_GIT_MAVEN_PATH, "").contains(".."))
         {
-            errorCollection.addError(REPOSITORY_GIT_MAVEN_PATH, textProvider.getText("repository.git.messages.invalidPomPath"));
+            errorCollection.addError(REPOSITORY_GIT_MAVEN_PATH, i18nResolver.getText("repository.git.messages.invalidPomPath"));
         }
 
         return errorCollection;
@@ -726,13 +717,13 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     @NotNull
     public MavenPomAccessor getMavenPomAccessor()
     {
-        return new GitMavenPomAccessor(this, sshProxyService, textProvider, getGitCapability()).withPath(pathToPom);
+        return new GitMavenPomAccessor(this, sshProxyService, i18nResolver, getGitCapability()).withPath(pathToPom);
     }
 
     @NotNull
     public List<NameValuePair> getAuthenticationTypes()
     {
-        return Lists.transform(Lists.newArrayList(filterAuthenticationTypes(Arrays.asList(GitAuthenticationType.values()))), new Function<GitAuthenticationType, NameValuePair>()
+        return Lists.transform(Arrays.asList(GitAuthenticationType.values()), new Function<GitAuthenticationType, NameValuePair>()
         {
             public NameValuePair apply(GitAuthenticationType from)
             {
@@ -745,18 +736,6 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     public String getAuthType()
     {
         return accessData.authenticationType != null ? accessData.authenticationType.name() : defaultAuthenticationType.name();
-    }
-
-    private Iterable<GitAuthenticationType> filterAuthenticationTypes(Collection<GitAuthenticationType> authTypes)
-    {
-        return Iterables.filter(authTypes, new Predicate<GitAuthenticationType>()
-        {
-            @Override
-            public boolean apply(@Nullable final GitAuthenticationType input)
-            {
-                return (input == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported()) ? false : true;
-            }
-        });
     }
 
     // -------------------------------------------------------------------------------------------------- Public Methods
@@ -781,7 +760,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
 
     String getAuthTypeName(String authType)
     {
-        return textProvider.getText("repository.git.authenticationType." + StringUtils.lowerCase(authType));
+        return i18nResolver.getText("repository.git.authenticationType." + StringUtils.lowerCase(authType));
     }
 
     GitRepositoryAccessData getSubstitutedAccessData()
@@ -790,9 +769,9 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         substituted.repositoryUrl = substituteString(accessData.repositoryUrl);
         substituted.branch = substituteString(accessData.branch);
         substituted.username = substituteString(accessData.username);
-        substituted.password = encrypterRef.get().decrypt(accessData.password);
-        substituted.sshKey = encrypterRef.get().decrypt(accessData.sshKey);
-        substituted.sshPassphrase = encrypterRef.get().decrypt(accessData.sshPassphrase);
+        substituted.password = encryptionService.decrypt(accessData.password);
+        substituted.sshKey = encryptionService.decrypt(accessData.sshKey);
+        substituted.sshPassphrase = encryptionService.decrypt(accessData.sshPassphrase);
         substituted.authenticationType = accessData.authenticationType;
         substituted.useShallowClones = accessData.useShallowClones;
         substituted.useSubmodules = accessData.useSubmodules;
@@ -813,7 +792,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
             e = e.getCause();
         } while (e!=null);
 
-        buildLogger.addBuildLogEntry(textProvider.getText(key, Arrays.asList(directory)));
+        buildLogger.addBuildLogEntry(i18nResolver.getText(key, directory));
         log.warn("Deleting directory " + directory, e);
 
         // This section does not really work on Windows (files open by antivirus software or leaked by jgit - and it does leak handles - will remain on the harddrive),
@@ -879,23 +858,21 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         return GitCacheDirectory.getCacheDirectory(buildDirectoryManager.getBaseBuildWorkingDirectory(), accessData);
     }
 
-    @Override
-    public synchronized void setTextProvider(TextProvider textProvider) {
-        super.setTextProvider(textProvider);
-        if (textProvider.getText(REPOSITORY_GIT_NAME) == null)
-        {
-            LocalizedTextUtil.addDefaultResourceBundle("com.atlassian.bamboo.plugins.git.i18n");
-        }
+    public void setI18nResolver(I18nResolver i18nResolver)
+    {
+        this.i18nResolver = i18nResolver;
+    }
+
+    public void setEncryptionService(EncryptionService encryptionService)
+    {
+        this.encryptionService = encryptionService;
     }
 
     public String getOptionDescription()
     {
         String capabilitiesLink = ServletActionContext.getRequest().getContextPath() +
                                   "/admin/agent/configureSharedLocalCapabilities.action";
-        return textProvider.getText("repository.git.description", Arrays.asList(
-                getGitCapability(),
-                capabilitiesLink
-        ));
+        return i18nResolver.getText("repository.git.description", getGitCapability(), capabilitiesLink);
     }
 
     // Git capability is optional, so we don't enforce it here
