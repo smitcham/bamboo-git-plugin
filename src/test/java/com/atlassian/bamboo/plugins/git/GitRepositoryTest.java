@@ -2,6 +2,7 @@ package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.build.fileserver.BuildDirectoryManager;
 import com.atlassian.bamboo.commit.CommitContext;
+import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
 import com.atlassian.bamboo.repository.NameValuePair;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
@@ -10,18 +11,26 @@ import com.atlassian.testtools.ZipResourceDirectory;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.errors.TransportException;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.List;
 
+import static com.atlassian.bamboo.spring.SpringTestHelper.mockSpringComponent;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
 public class GitRepositoryTest extends GitAbstractTest
 {
+    @BeforeClass
+    public void setUpBranchIntegrationHelper() throws Exception
+    {
+        mockSpringComponent("branchIntegrationHelper", BranchIntegrationHelper.class);
+    }
+
     @Test
     public void testBasicFunctionality() throws Exception
     {

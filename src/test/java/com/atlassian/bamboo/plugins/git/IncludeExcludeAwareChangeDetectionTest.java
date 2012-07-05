@@ -6,6 +6,7 @@ import com.atlassian.bamboo.chains.BuildContextFactory;
 import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.branch.BranchCommitInformationManager;
 import com.atlassian.bamboo.plan.branch.BranchDetectionService;
+import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plan.cache.ImmutablePlanCacheService;
@@ -98,8 +99,8 @@ public class IncludeExcludeAwareChangeDetectionTest extends GitAbstractTest
                 customVariableContext,
                 Mockito.mock(PlanVcsRevisionHistoryService.class),
                 Mockito.mock(BranchDetectionService.class),
-                Mockito.mock(ImmutablePlanCacheService.class),
-                Mockito.mock(BranchCommitInformationManager.class)
+                Mockito.mock(BranchCommitInformationManager.class),
+                Mockito.mock(BranchIntegrationHelper.class)
         );
         GitRepository gitRepository = createGitRepository();
         setRepositoryProperties(gitRepository, localRepository);

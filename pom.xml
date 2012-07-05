@@ -76,12 +76,18 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.atlassian.bundles</groupId>
+      <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>8.1</version>
+      <version>10.0.1</version>
       <scope>provided</scope>
     </dependency>
 
+    <dependency>
+      <groupId>com.atlassian.bamboo</groupId>
+      <artifactId>atlassian-bamboo-test-utils</artifactId>
+      <version>${bamboo.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>com.atlassian.bamboo.plugins</groupId>
       <artifactId>atlassian-bamboo-plugin-ssh</artifactId>
@@ -115,13 +121,6 @@
   </dependencies>
 
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
-
     <plugins>
       <plugin>
         <groupId>com.atlassian.maven.plugins</groupId>
@@ -143,6 +142,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.12</version>
         <configuration>
           <excludedGroups>manual</excludedGroups>
           <parallel>methods</parallel>
@@ -166,6 +166,7 @@
         </executions>
       </plugin>
 
+      <!--todo bundle it instead of unpack/shade-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>

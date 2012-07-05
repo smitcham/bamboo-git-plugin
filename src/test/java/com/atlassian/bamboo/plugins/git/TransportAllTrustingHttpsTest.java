@@ -22,7 +22,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-import static junit.framework.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 public class TransportAllTrustingHttpsTest extends GitAbstractTest
 {
@@ -111,7 +111,7 @@ public class TransportAllTrustingHttpsTest extends GitAbstractTest
                 searchedProtocolNamesCount++;
             }
         }
-        assertEquals("HTTP and FTP protocols should be properly registered", 2, searchedProtocolNamesCount);
+        assertEquals(searchedProtocolNamesCount, 2, "HTTP and FTP protocols should be properly registered");
 
         try
         {

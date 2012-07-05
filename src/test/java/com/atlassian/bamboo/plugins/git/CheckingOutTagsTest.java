@@ -1,5 +1,6 @@
 package com.atlassian.bamboo.plugins.git;
 
+import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import org.apache.commons.io.FileUtils;
@@ -15,10 +16,18 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
+import static com.atlassian.bamboo.spring.SpringTestHelper.mockSpringComponent;
+
 public class CheckingOutTagsTest extends GitAbstractTest
 {
     private GitTestRepository srcRepo;
     private File srcDir;
+
+    @BeforeClass
+    public void setUpBranchIntegrationHelper() throws Exception
+    {
+        mockSpringComponent("branchIntegrationHelper", BranchIntegrationHelper.class);
+    }
 
     @BeforeClass
     void setUpTest() throws IOException, GitAPIException
