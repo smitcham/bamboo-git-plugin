@@ -3,6 +3,7 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.build.BuildLoggerManager;
 import com.atlassian.bamboo.build.fileserver.BuildDirectoryManager;
 import com.atlassian.bamboo.commit.CommitContext;
+import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
 import com.atlassian.bamboo.repository.AbstractStandaloneRepository;
@@ -100,6 +101,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     public void setEncryptionService(EncryptionService encryptionService)
     {
         this.encryptionService = encryptionService;
+        gitRepository.setEncryptionService(encryptionService);
     }
 
     @Override
@@ -118,6 +120,12 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     {
         gitRepository.setSshProxyService(sshProxyService);
     }
+
+    public void setBranchIntegrationHelper(final BranchIntegrationHelper branchIntegrationHelper)
+    {
+        gitRepository.setBranchIntegrationHelper(branchIntegrationHelper);
+    }
+
 
     @Override
     public void setTemplateRenderer(TemplateRenderer templateRenderer)
