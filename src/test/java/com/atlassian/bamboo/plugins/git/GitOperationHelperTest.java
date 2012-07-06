@@ -161,7 +161,7 @@ public class GitOperationHelperTest extends GitAbstractTest
                                         new CommitFileImpl("41640582d7a719fd9c0f29de71f716c17768e3b0", "src/test/resources/bamboo-git-plugin-tests-passphrased.id_rsa"),
                                         new CommitFileImpl("41640582d7a719fd9c0f29de71f716c17768e3b0", "src/test/resources/bamboo-git-plugin-tests-passphraseless.id_rsa"),
                                 }),
-                                createCommitImpl(PIOTR_STEFANIAK, "BAM-7397 Write tests for git plugin\nGitOperationHelper.checkout tests\n", "2010-12-10 19:00:22 +0100", new CommitFileImpl[] {
+                                createCommitImpl(PIOTR_STEFANIAK, "BAM-7397 Write tests for git plugin\nGitOperationHelperToBeRemoved.checkout tests\n", "2010-12-10 19:00:22 +0100", new CommitFileImpl[] {
                                         new CommitFileImpl("1de48d29183cfb86352196fc0fc0cd066d079642", "src/test/java/com/atlassian/bamboo/plugins/git/GitAbstractTest.java"),
                                         new CommitFileImpl("1de48d29183cfb86352196fc0fc0cd066d079642", "src/test/java/com/atlassian/bamboo/plugins/git/GitOperationHelperTest.java"),
                                         new CommitFileImpl("1de48d29183cfb86352196fc0fc0cd066d079642", "src/test/java/com/atlassian/bamboo/plugins/git/GitRepositoryTest.java"),
@@ -174,7 +174,7 @@ public class GitOperationHelperTest extends GitAbstractTest
                                         new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "pom.xml"),
                                         new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/java/com/atlassian/bamboo/plugins/ExampleServlet.java"),
                                         new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/java/com/atlassian/bamboo/plugins/GitCacheDirectory.java"),
-                                        new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/java/com/atlassian/bamboo/plugins/GitOperationHelper.java"),
+                                        new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/java/com/atlassian/bamboo/plugins/GitOperationHelperToBeRemoved.java"),
                                         new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/java/com/atlassian/bamboo/plugins/GitRepository.java"),
                                         new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/java/com/atlassian/bamboo/plugins/GitSshSessionFactory.java"),
                                         new CommitFileImpl("8c1010ac20da59bde61b16062445727c700ea14f", "src/main/resources/atlassian-plugin.xml"),
@@ -364,7 +364,7 @@ public class GitOperationHelperTest extends GitAbstractTest
     @Test(dataProvider = "transportMappingData")
     public void testOpenConnectionUsesCustomizedTransport(String url, boolean expectCustomized) throws Exception
     {
-        GitOperationHelper goh = createJGitOperationHelper(null);
+        GitOperationHelperToBeRemoved goh = createJGitOperationHelper(null);
         GitRepository.GitRepositoryAccessData accessData = createAccessData(url);
         FileRepository fileRepository = new FileRepository(createTempDirectory());
         Transport transport = goh.open(fileRepository, accessData);

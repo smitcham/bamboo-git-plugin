@@ -4,6 +4,7 @@ package com.atlassian.bamboo.plugins.git.timeouts;
 import com.atlassian.bamboo.build.logger.NullBuildLogger;
 import com.atlassian.bamboo.plugins.git.GitAbstractTest;
 import com.atlassian.bamboo.plugins.git.GitOperationHelper;
+import com.atlassian.bamboo.plugins.git.GitOperationHelperToBeRemoved;
 import com.atlassian.bamboo.plugins.git.JGitOperationHelper;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.sal.api.message.I18nResolver;
@@ -36,7 +37,7 @@ public class TimeoutsTest extends GitAbstractTest
     @BeforeClass
     public void setUp() throws Exception
     {
-        Field timeout = GitOperationHelper.class.getDeclaredField("DEFAULT_TRANSFER_TIMEOUT");
+        Field timeout = GitOperationHelperToBeRemoved.class.getDeclaredField("DEFAULT_TRANSFER_TIMEOUT");
         timeout.setAccessible(true);
         timeout.setInt(null, 1);
 

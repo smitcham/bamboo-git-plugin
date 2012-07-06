@@ -1,19 +1,21 @@
 package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
+import com.atlassian.bamboo.commit.CommitContext;
+import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.ProxyConnectionData;
 import com.atlassian.bamboo.ssh.ProxyConnectionDataBuilder;
 import com.atlassian.bamboo.ssh.ProxyException;
 import com.atlassian.bamboo.ssh.SshProxyService;
+import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import com.atlassian.sal.api.message.I18nResolver;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.storage.file.FileRepository;
 import org.eclipse.jgit.transport.RefSpec;
-import org.eclipse.jgit.transport.Transport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +25,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
-public class NativeGitOperationHelper extends GitOperationHelper
+public class NativeGitOperationHelper extends AbstractGitOperationHelper implements GitOperationHelper
 {
     @SuppressWarnings("UnusedDeclaration")
     private static final Logger log = Logger.getLogger(GitRepository.class);
@@ -97,8 +99,8 @@ public class NativeGitOperationHelper extends GitOperationHelper
                 "GIT_AUTHOR_EMAIL", email); //not required
     }
 
-    @Override
-    protected void doFetch(@NotNull final Transport transport, @NotNull final File sourceDirectory, final RefSpec refSpec, final boolean useShallow) throws RepositoryException
+    //FIXME: USED TO BE OVERRIDEN methods what we will do with them?
+    protected void doFetch(@NotNull final File sourceDirectory, final RefSpec refSpec, final boolean useShallow) throws RepositoryException
     {
         final GitRepository.GitRepositoryAccessData proxiedAccessData = adjustRepositoryAccess(accessData);
         try
@@ -109,17 +111,6 @@ public class NativeGitOperationHelper extends GitOperationHelper
         {
             closeProxy(proxiedAccessData);
         }
-    }
-
-    @Override
-    protected String doCheckout(@NotNull FileRepository localRepository, @NotNull final File sourceDirectory, @NotNull final String targetRevision, @Nullable final String previousRevision, final boolean useSubmodules) throws RepositoryException
-    {
-        gitCommandProcessor.runCheckoutCommand(sourceDirectory, targetRevision);
-        if (useSubmodules)
-        {
-            gitCommandProcessor.runSubmoduleUpdateCommand(sourceDirectory);
-        }
-        return targetRevision;
     }
 
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -312,8 +303,99 @@ public class NativeGitOperationHelper extends GitOperationHelper
         return StringUtils.isNotBlank(password) ? (username + ":" + password) : username;
     }
 
+    private void createLocalRepository(final File sourceDirectory, final File cacheDirectory)
+    {
+        createUpdateCache(cacheDirectory);
+        //clone from cache to sourceDirectory
+    }
+
+    private void createUpdateCache(final File cacheDirectory)
+    {
+
+    }
+
     protected void closeProxy(@NotNull final GitRepository.GitRepositoryAccessData accessData)
     {
         sshProxyService.unregister(accessData.proxyRegistrationInfo);
+    }
+
+    ////NOT IMPLEMENTED WILL DO SOMEDAY:
+
+
+    @NotNull
+    @Override
+    public String checkout(@Nullable final File cacheDirectory, @NotNull final File sourceDirectory, @NotNull final String targetRevision, @Nullable final String previousRevision) throws RepositoryException
+    {
+        // would be cool to store lastCheckoutedRevision in the localRepository somehow - so we don't need to specify it
+        buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.checkingOutRevision", targetRevision));
+
+        try
+        {
+            createLocalRepository(sourceDirectory, cacheDirectory);
+            //try to clean .git/index.lock file prior to checkout, otherwise checkout would fail with Exception
+            File lck = new File(sourceDirectory, "index.lock");
+            FileUtils.deleteQuietly(lck);
+
+            gitCommandProcessor.runCheckoutCommand(sourceDirectory, targetRevision);
+            if (accessData.useSubmodules)
+            {
+                gitCommandProcessor.runSubmoduleUpdateCommand(sourceDirectory);
+            }
+            return targetRevision;
+        }
+        catch (Exception e)
+        {
+            throw new RepositoryException(buildLogger.addErrorLogEntry(i18nResolver.getText("repository.git.messages.checkoutFailed", targetRevision)) + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void fetch(@NotNull final File sourceDirectory, final boolean useShallow) throws RepositoryException
+    {
+    }
+
+    @NotNull
+    @Override
+    public String getCurrentRevision(@NotNull final File sourceDirectory) throws RepositoryException
+    {
+        return null;
+    }
+
+    @Override
+    public String getRevisionIfExists(@NotNull final File sourceDirectory, @NotNull final String revision)
+    {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public String obtainLatestRevision() throws RepositoryException
+    {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public List<VcsBranch> getOpenBranches(@NotNull final GitRepository.GitRepositoryAccessData repositoryData) throws RepositoryException
+    {
+        return null;
+    }
+
+    @Override
+    public boolean checkRevisionExistsInCacheRepository(@NotNull final File repositoryDirectory, @NotNull final String targetRevision) throws IOException
+    {
+        return false;
+    }
+
+    @Override
+    public CommitContext getCommit(final File directory, final String targetRevision) throws RepositoryException
+    {
+        return null;
+    }
+
+    @Override
+    public BuildRepositoryChanges extractCommits(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision) throws RepositoryException
+    {
+        return null;
     }
 }
