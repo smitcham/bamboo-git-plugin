@@ -122,7 +122,7 @@ public class GitAbstractTest
         gitRepository.populateFromConfig(buildConfiguration);
     }
 
-    public GitOperationHelperToBeRemoved createJGitOperationHelper(final GitRepositoryAccessData accessData)
+    public GitOperationHelper createJGitOperationHelper(final GitRepositoryAccessData accessData)
     {
         I18nResolver i18nResolver = Mockito.mock(I18nResolver.class);
         return new JGitOperationHelper(accessData, new NullBuildLogger(), i18nResolver);

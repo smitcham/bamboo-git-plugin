@@ -25,7 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class JGitOperationHelper extends GitOperationHelperToBeRemoved
+public class JGitOperationHelper extends GitOperationHelper
 {
     @SuppressWarnings("UnusedDeclaration")
     private static final Logger log = Logger.getLogger(JGitOperationHelper.class);
