@@ -23,6 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class NativeGitOperationHelper extends AbstractGitOperationHelper implements GitOperationHelper
@@ -34,6 +37,8 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     // ------------------------------------------------------------------------------------------------- Type Properties
     protected SshProxyService sshProxyService;
     GitCommandProcessor gitCommandProcessor;
+    private static final String TEMP_PLACEHOLDER_FOR_ERRORS = "blah blah blah";
+    private static final String[] FQREF_PREFIXES = {Constants.R_HEADS, Constants.R_REFS};
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
 
@@ -102,15 +107,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     //FIXME: USED TO BE OVERRIDEN methods what we will do with them?
     protected void doFetch(@NotNull final File sourceDirectory, final RefSpec refSpec, final boolean useShallow) throws RepositoryException
     {
-        final GitRepository.GitRepositoryAccessData proxiedAccessData = adjustRepositoryAccess(accessData);
-        try
-        {
-            gitCommandProcessor.runFetchCommand(sourceDirectory, proxiedAccessData, refSpec, useShallow);
-        }
-        finally
-        {
-            closeProxy(proxiedAccessData);
-        }
+
     }
 
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -303,24 +300,36 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         return StringUtils.isNotBlank(password) ? (username + ":" + password) : username;
     }
 
-    private void createLocalRepository(final File sourceDirectory, final File cacheDirectory)
+    private void createLocalRepository(final File sourceDirectory, final File cacheDirectory) throws RepositoryException
     {
-        createUpdateCache(cacheDirectory);
-        //clone from cache to sourceDirectory
-    }
-
-    private void createUpdateCache(final File cacheDirectory)
-    {
-
+        //setup local repository
+        try
+        {
+            //first check if repository exists
+            File gitDirectory = new File(sourceDirectory, ".git");
+            if (!gitDirectory.isDirectory())
+            {
+                if (cacheDirectory != null && cacheDirectory.isDirectory())
+                {
+                    //perform clone from cache
+                    gitCommandProcessor.runCloneCommand(sourceDirectory, cacheDirectory.getAbsolutePath(), accessData.useShallowClones, accessData.verboseLogs);
+                }
+                else
+                {
+                    gitCommandProcessor.runInitCommand(sourceDirectory);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            throw new RepositoryException(buildLogger.addErrorLogEntry(i18nResolver.getText(TEMP_PLACEHOLDER_FOR_ERRORS) + e.getMessage()), e);
+        }
     }
 
     protected void closeProxy(@NotNull final GitRepository.GitRepositoryAccessData accessData)
     {
         sshProxyService.unregister(accessData.proxyRegistrationInfo);
     }
-
-    ////NOT IMPLEMENTED WILL DO SOMEDAY:
-
 
     @NotNull
     @Override
@@ -352,8 +361,71 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     @Override
     public void fetch(@NotNull final File sourceDirectory, final boolean useShallow) throws RepositoryException
     {
+        final String[] branchDescription = {"(unresolved) " + accessData.branch};
+        try
+        {
+            createLocalRepository(sourceDirectory, null);
+            final GitRepository.GitRepositoryAccessData proxiedAccessData = adjustRepositoryAccess(accessData);
+
+            try
+            {
+                final String resolvedBranch;
+                if (StringUtils.startsWithAny(accessData.branch, FQREF_PREFIXES))
+                {
+                    resolvedBranch = accessData.branch;
+                }
+                else
+                {
+                    resolvedBranch = resolveBranch(sourceDirectory, accessData.branch);
+                }
+                branchDescription[0] = resolvedBranch;
+
+                buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.fetchingBranch", resolvedBranch, accessData.repositoryUrl)
+                                             + (useShallow ? " " + i18nResolver.getText("repository.git.messages.doingShallowFetch") : ""));
+                RefSpec refSpec = new RefSpec()
+                        .setForceUpdate(true)
+                        .setSource(resolvedBranch)
+                        .setDestination(resolvedBranch);
+
+                gitCommandProcessor.runFetchCommand(sourceDirectory, proxiedAccessData, refSpec, useShallow);
+
+                if (resolvedBranch.startsWith(Constants.R_HEADS))
+                {
+                    //git update?
+                }
+            }
+            finally
+            {
+                closeProxy(proxiedAccessData);
+            }
+        }
+        catch (Exception e)
+        {
+            String message = i18nResolver.getText("repository.git.messages.fetchingFailed", accessData.repositoryUrl, branchDescription[0], sourceDirectory);
+            throw new RepositoryException(buildLogger.addErrorLogEntry(message + " " + e.getMessage()), e);
+        }
     }
 
+    private String resolveBranch(GitRepository.GitRepositoryAccessData accessData, final File sourceDirectory, final String branch)
+    {
+        gitCommandProcessor.getRemoteRefs(sourceDirectory, accessData);
+        final Collection<String> candidates;
+        if (StringUtils.isBlank(branch))
+        {
+            candidates = Arrays.asList(Constants.R_HEADS + Constants.MASTER, Constants.HEAD);
+        }
+        else if (StringUtils.startsWithAny(branch, FQREF_PREFIXES))
+        {
+            candidates = Collections.singletonList(branch);
+        }
+        else
+        {
+            candidates = Arrays.asList(branch, Constants.R_HEADS + branch, Constants.R_TAGS + branch);
+        }
+        return null;
+    }
+
+    ////NOT IMPLEMENTED WILL DO SOMEDAY:
     @NotNull
     @Override
     public String getCurrentRevision(@NotNull final File sourceDirectory) throws RepositoryException

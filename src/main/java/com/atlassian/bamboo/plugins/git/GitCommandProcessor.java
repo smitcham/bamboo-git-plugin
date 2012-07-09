@@ -25,7 +25,6 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -173,6 +172,22 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         runCommand(commandBuilder, workingDirectory, new LoggingOutputHandler(buildLogger));
     }
 
+    public void runCloneCommand(@NotNull final File workingDirectory, @NotNull final String repositoryUrl, boolean useShallowClone, boolean verboseLogs) throws RepositoryException
+    {
+        GitCommandBuilder commandBuilder = createCommandBuilder("clone", repositoryUrl);
+        commandBuilder.destination(workingDirectory.getAbsolutePath());
+        if (useShallowClone)
+        {
+            commandBuilder.shallowClone();
+        }
+        if (verboseLogs)
+        {
+            commandBuilder.verbose(true);
+            commandBuilder.append("--progress");
+        }
+        runCommand(commandBuilder, workingDirectory, new LoggingOutputHandler(buildLogger));
+    }
+
     public void runCheckoutCommand(@NotNull final File workingDirectory, String revision) throws RepositoryException
     {
         /**
@@ -221,6 +236,23 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
             }
         }
         return "";
+    }
+
+    public List<String> getRemoteRefs(File workingDirectory, GitRepository.GitRepositoryAccessData accessData) throws RepositoryException
+    {
+        LineOutputHandlerImpl goh = new LineOutputHandlerImpl();
+        GitCommandBuilder commandBuilder = createCommandBuilder("ls-remote", accessData.repositoryUrl);
+        runCommand(commandBuilder, workingDirectory, goh);
+        List<String> result = Lists.newArrayList();
+        for (String ref : goh.getLines())
+        {
+            if (ref.contains("^{}"))
+            {
+                continue;
+            }
+            result.add(ref.substring(ref.indexOf("refs")));
+        }
+        return result;
     }
 
     public GitCommandBuilder createCommandBuilder(String... commands)
