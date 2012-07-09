@@ -3,6 +3,7 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.build.fileserver.BuildDirectoryManager;
 import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
+import com.atlassian.bamboo.plan.branch.BranchIntegrationService;
 import com.atlassian.bamboo.repository.NameValuePair;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
@@ -28,7 +29,7 @@ public class GitRepositoryTest extends GitAbstractTest
     @BeforeClass
     public void setUpBranchIntegrationHelper() throws Exception
     {
-        mockSpringComponent("branchIntegrationHelper", BranchIntegrationHelper.class);
+        mockSpringComponent("branchIntegrationService", BranchIntegrationService.class);
     }
 
     @Test
