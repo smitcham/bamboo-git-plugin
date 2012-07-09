@@ -38,7 +38,7 @@ public interface GitOperationHelper
     String obtainLatestRevision() throws RepositoryException;
 
     @NotNull
-    List<VcsBranch> getOpenBranches(@NotNull GitRepository.GitRepositoryAccessData repositoryData) throws RepositoryException;
+    List<VcsBranch> getOpenBranches(@NotNull final GitRepository.GitRepositoryAccessData repositoryData, final File workingDir) throws RepositoryException;
 
     boolean checkRevisionExistsInCacheRepository(@NotNull File repositoryDirectory, @NotNull String targetRevision) throws IOException;
 

@@ -3,6 +3,7 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
+import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.ProxyConnectionData;
 import com.atlassian.bamboo.ssh.ProxyConnectionDataBuilder;
@@ -11,6 +12,7 @@ import com.atlassian.bamboo.ssh.SshProxyService;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import com.atlassian.sal.api.message.I18nResolver;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -27,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class NativeGitOperationHelper extends AbstractGitOperationHelper implements GitOperationHelper
 {
@@ -102,12 +105,6 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
                 "GIT_COMMITTER_EMAIL", email, //otherwise warning on commit
                 "GIT_AUTHOR_NAME", name, //needed for commit
                 "GIT_AUTHOR_EMAIL", email); //not required
-    }
-
-    //FIXME: USED TO BE OVERRIDEN methods what we will do with them?
-    protected void doFetch(@NotNull final File sourceDirectory, final RefSpec refSpec, final boolean useShallow) throws RepositoryException
-    {
-
     }
 
     // -------------------------------------------------------------------------------------------------- Action Methods
@@ -376,7 +373,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
                 }
                 else
                 {
-                    resolvedBranch = resolveBranch(proxiedAccessData, sourceDirectory, accessData.branch);
+                    resolvedBranch =  resolveBranch(proxiedAccessData, sourceDirectory, accessData.branch);
                 }
                 branchDescription[0] = resolvedBranch;
 
@@ -432,7 +429,31 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         return null;
     }
 
-    ////NOT IMPLEMENTED WILL DO SOMEDAY:
+    @NotNull
+    @Override
+    public List<VcsBranch> getOpenBranches(@NotNull final GitRepository.GitRepositoryAccessData repositoryData, final File workingDir) throws RepositoryException
+    {
+        final GitRepository.GitRepositoryAccessData proxiedAccessData = adjustRepositoryAccess(repositoryData);
+        try
+        {
+            Set<String> refs = gitCommandProcessor.getRemoteRefs(workingDir, proxiedAccessData);
+            List<VcsBranch> openBranches = Lists.newArrayList();
+            for (String ref : refs)
+            {
+                if (ref.startsWith(Constants.R_HEADS))
+                {
+                    openBranches.add(new VcsBranchImpl(ref.substring(Constants.R_HEADS.length())));
+                }
+            }
+            return openBranches;
+        }
+        finally
+        {
+            closeProxy(proxiedAccessData);
+        }
+    }
+
+    //NOT IMPLEMENTED WILL DO SOMEDAY:
     @NotNull
     @Override
     public String getCurrentRevision(@NotNull final File sourceDirectory) throws RepositoryException
@@ -449,13 +470,6 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     @NotNull
     @Override
     public String obtainLatestRevision() throws RepositoryException
-    {
-        return null;
-    }
-
-    @NotNull
-    @Override
-    public List<VcsBranch> getOpenBranches(@NotNull final GitRepository.GitRepositoryAccessData repositoryData) throws RepositoryException
     {
         return null;
     }

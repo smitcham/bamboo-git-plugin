@@ -391,7 +391,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
     {
         final GitRepositoryAccessData substitutedAccessData = getSubstitutedAccessData();
         final JGitOperationHelper helper = new JGitOperationHelper(substitutedAccessData, new NullBuildLogger(), i18nResolver);
-        return helper.getOpenBranches(substitutedAccessData);
+        return helper.getOpenBranches(substitutedAccessData, getWorkingDirectory());
     }
 
     @Override

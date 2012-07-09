@@ -326,7 +326,7 @@ public abstract class GitOperationHelperToBeRemoved extends AbstractGitOperation
 
     @Override
     @NotNull
-    public List<VcsBranch> getOpenBranches(@NotNull final GitRepositoryAccessData repositoryData) throws RepositoryException
+    public List<VcsBranch> getOpenBranches(@NotNull final GitRepositoryAccessData repositoryData, final File workingDir) throws RepositoryException
     {
         try
         {
