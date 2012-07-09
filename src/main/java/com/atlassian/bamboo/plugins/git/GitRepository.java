@@ -5,6 +5,7 @@ import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.build.logger.NullBuildLogger;
 import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.commit.CommitContextImpl;
+import com.atlassian.bamboo.core.TransportProtocol;
 import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
@@ -26,6 +27,7 @@ import com.atlassian.bamboo.repository.SelectableAuthenticationRepository;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.ssh.ProxyRegistrationInfo;
 import com.atlassian.bamboo.ssh.SshProxyService;
+import com.atlassian.bamboo.util.TextProviderUtils;
 import com.atlassian.bamboo.utils.SystemProperty;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
 import com.atlassian.bamboo.utils.fage.Result;
@@ -643,44 +645,43 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
         }
         else
         {
+            TransportProtocol transportProtocol = TransportProtocol.of(repositoryUrl, TransportProtocol.SSH);
+            if (!featureManager.isTransportSupported(transportProtocol))
+            {
+                errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL, TextProviderUtils.getText(i18nResolver, "repository.git.messages.unsupportedTransportProtocol", transportProtocol.toString()));
+            }
+
             final boolean hasUsername = StringUtils.isNotBlank(buildConfiguration.getString(REPOSITORY_GIT_USERNAME));
             final boolean hasPassword = StringUtils.isNotBlank(buildConfiguration.getString(REPOSITORY_GIT_PASSWORD));
             try
             {
                 final URIish uri = new URIish(repositoryUrl);
-                if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && !featureManager.isSshTransportSupported())
+                if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())))
                 {
-                    errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, i18nResolver.getText("repository.git.messages.unsupportedSshAuthenticationType"));
+                    errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, i18nResolver.getText("repository.git.messages.unsupportedHttpAuthenticationType"));
                 }
-                else
+                else if (authenticationType == GitAuthenticationType.PASSWORD)
                 {
-                    if (authenticationType == GitAuthenticationType.SSH_KEYPAIR && ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())))
+                    boolean duplicateUsername = hasUsername && StringUtils.isNotBlank(uri.getUser());
+                    boolean duplicatePassword = hasPassword && StringUtils.isNotBlank(uri.getPass());
+                    if (duplicateUsername || duplicatePassword)
                     {
-                        errorCollection.addError(REPOSITORY_GIT_AUTHENTICATION_TYPE, i18nResolver.getText("repository.git.messages.unsupportedHttpAuthenticationType"));
+                        errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL,
+                                (duplicateUsername ? i18nResolver.getText("repository.git.messages.duplicateUsernameField") : "")
+                                        + ((duplicateUsername && duplicatePassword) ? " " : "")
+                                        + (duplicatePassword ? i18nResolver.getText("repository.git.messages.duplicatePasswordField") : ""));
                     }
-                    else if (authenticationType == GitAuthenticationType.PASSWORD)
+                    if (duplicateUsername)
                     {
-                        boolean duplicateUsername = hasUsername && StringUtils.isNotBlank(uri.getUser());
-                        boolean duplicatePassword = hasPassword && StringUtils.isNotBlank(uri.getPass());
-                        if (duplicateUsername || duplicatePassword)
-                        {
-                            errorCollection.addError(REPOSITORY_GIT_REPOSITORY_URL,
-                                    (duplicateUsername ? i18nResolver.getText("repository.git.messages.duplicateUsernameField") : "")
-                                            + ((duplicateUsername && duplicatePassword) ? " " : "")
-                                            + (duplicatePassword ? i18nResolver.getText("repository.git.messages.duplicatePasswordField") : ""));
-                        }
-                        if (duplicateUsername)
-                        {
-                            errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.duplicateUsernameField"));
-                        }
-                        if (duplicatePassword)
-                        {
-                            errorCollection.addError(TEMPORARY_GIT_PASSWORD_CHANGE, i18nResolver.getText("repository.git.messages.duplicatePasswordField"));
-                        }
-                        if (uri.getHost() == null && hasUsername)
-                        {
-                            errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.unsupportedUsernameField"));
-                        }
+                        errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.duplicateUsernameField"));
+                    }
+                    if (duplicatePassword)
+                    {
+                        errorCollection.addError(TEMPORARY_GIT_PASSWORD_CHANGE, i18nResolver.getText("repository.git.messages.duplicatePasswordField"));
+                    }
+                    if (uri.getHost() == null && hasUsername)
+                    {
+                        errorCollection.addError(REPOSITORY_GIT_USERNAME, i18nResolver.getText("repository.git.messages.unsupportedUsernameField"));
                     }
                 }
             }
