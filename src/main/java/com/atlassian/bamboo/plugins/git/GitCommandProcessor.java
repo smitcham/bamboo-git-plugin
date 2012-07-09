@@ -238,12 +238,12 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         return "";
     }
 
-    public List<String> getRemoteRefs(File workingDirectory, GitRepository.GitRepositoryAccessData accessData) throws RepositoryException
+    public Set<String> getRemoteRefs(File workingDirectory, GitRepository.GitRepositoryAccessData accessData) throws RepositoryException
     {
         LineOutputHandlerImpl goh = new LineOutputHandlerImpl();
         GitCommandBuilder commandBuilder = createCommandBuilder("ls-remote", accessData.repositoryUrl);
         runCommand(commandBuilder, workingDirectory, goh);
-        List<String> result = Lists.newArrayList();
+        Set<String> result = Sets.newHashSet();
         for (String ref : goh.getLines())
         {
             if (ref.contains("^{}"))

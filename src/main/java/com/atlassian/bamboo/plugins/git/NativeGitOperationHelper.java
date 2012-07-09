@@ -376,7 +376,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
                 }
                 else
                 {
-                    resolvedBranch = resolveBranch(sourceDirectory, accessData.branch);
+                    resolvedBranch = resolveBranch(proxiedAccessData, sourceDirectory, accessData.branch);
                 }
                 branchDescription[0] = resolvedBranch;
 
@@ -406,9 +406,9 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         }
     }
 
-    private String resolveBranch(GitRepository.GitRepositoryAccessData accessData, final File sourceDirectory, final String branch)
+    private String resolveBranch(GitRepository.GitRepositoryAccessData accessData, final File sourceDirectory, final String branch) throws RepositoryException
     {
-        gitCommandProcessor.getRemoteRefs(sourceDirectory, accessData);
+        Collection<String> remoteRefs = gitCommandProcessor.getRemoteRefs(sourceDirectory, accessData);
         final Collection<String> candidates;
         if (StringUtils.isBlank(branch))
         {
@@ -421,6 +421,13 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         else
         {
             candidates = Arrays.asList(branch, Constants.R_HEADS + branch, Constants.R_TAGS + branch);
+        }
+        for (String candidate : candidates)
+        {
+            if (remoteRefs.contains(candidate))
+            {
+                return candidate;
+            }
         }
         return null;
     }
