@@ -5,6 +5,7 @@ import com.atlassian.bamboo.build.BuildLoggerManager;
 import com.atlassian.bamboo.build.fileserver.BuildDirectoryManager;
 import com.atlassian.bamboo.build.logger.NullBuildLogger;
 import com.atlassian.bamboo.chains.Chain;
+import com.atlassian.bamboo.core.TransportProtocol;
 import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
@@ -31,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.eclipse.jgit.lib.Repository;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.internal.stubbing.answers.Returns;
 import org.testng.annotations.AfterClass;
@@ -174,7 +176,7 @@ public class GitAbstractTest
         fixture.setBranchIntegrationHelper(branchIntegrationHelper);
 
         FeatureManager featureManager = mock(FeatureManager.class);
-        when(featureManager.isSshTransportSupported()).thenReturn(true);
+        when(featureManager.isTransportSupported(Matchers.<TransportProtocol>any())).thenReturn(true);
 
         fixture.setFeatureManager(featureManager);
 

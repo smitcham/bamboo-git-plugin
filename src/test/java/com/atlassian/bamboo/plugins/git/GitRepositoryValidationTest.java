@@ -1,9 +1,11 @@
 package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.FeatureManager;
+import com.atlassian.bamboo.core.TransportProtocol;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.atlassian.sal.api.message.I18nResolver;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.internal.stubbing.defaultanswers.ReturnsMocks;
 import org.testng.Assert;
@@ -225,7 +227,7 @@ public class GitRepositoryValidationTest
         GitRepository repo = new GitRepository();
         repo.setI18nResolver(Mockito.mock(I18nResolver.class, new ReturnsMocks()));
         FeatureManager featureManager = mock(FeatureManager.class);
-        when(featureManager.isSshTransportSupported()).thenReturn(true);
+        when(featureManager.isTransportSupported(Matchers.<TransportProtocol>any())).thenReturn(true);
         repo.setFeatureManager(featureManager);
         return repo;
     }
