@@ -157,9 +157,9 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         return gitOutputHandler.getLines();
     }
 
-    public void runFetchCommand(@NotNull final File workingDirectory, @NotNull final GitRepository.GitRepositoryAccessData accessData, RefSpec refSpec, boolean useShallow) throws RepositoryException
+    public void runFetchCommand(@NotNull final File workingDirectory, @NotNull final GitRepository.GitRepositoryAccessData accessData, String refSpec, boolean useShallow) throws RepositoryException
     {
-        GitCommandBuilder commandBuilder = createCommandBuilder("fetch", accessData.repositoryUrl, refSpec.toString(), "--update-head-ok");
+        GitCommandBuilder commandBuilder = createCommandBuilder("fetch", accessData.repositoryUrl, refSpec, "--update-head-ok");
         if (useShallow)
         {
             commandBuilder.shallowClone();
@@ -201,6 +201,11 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         {
            destination = possibleBranch;
         }
+        runCheckoutCommandForBranchOrRevision(workingDirectory, destination);
+    }
+
+    public void runCheckoutCommandForBranchOrRevision(@NotNull final File workingDirectory, String destination) throws RepositoryException
+    {
         GitCommandBuilder commandBuilder = createCommandBuilder("checkout", "-f", destination);
         runCommand(commandBuilder, workingDirectory, new LoggingOutputHandler(buildLogger));
     }
@@ -210,6 +215,23 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         GitCommandBuilder commandBuilder = createCommandBuilder("submodule", "update", "--init", "--recursive");
 
         runCommand(commandBuilder, workingDirectory, new LoggingOutputHandler(buildLogger));
+    }
+
+    @NotNull
+    public String getRevisionHash(@NotNull final File workingDirectory, @NotNull String revision) throws RepositoryException
+    {
+        GitCommandBuilder commandBuilder = createCommandBuilder("log", "-1", "--format=%H");
+        commandBuilder.append(revision);
+        final GitStringOutputHandler outputHandler = new GitStringOutputHandler();
+        int exitCode = runCommand(commandBuilder, workingDirectory, outputHandler);
+        if (exitCode == 0)
+        {
+            return outputHandler.getOutput().trim();
+        }
+        else
+        {
+            throw new RepositoryException("Git operation failed with exit code " + exitCode);
+        }
     }
 
     // -------------------------------------------------------------------------------------------------- Helper Methods
@@ -236,6 +258,24 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
             }
         }
         return "";
+    }
+
+    @Nullable
+    public String getRemoteBranchLatestCommitHash(File workingDirectory, GitRepository.GitRepositoryAccessData accessData, String branchRef) throws RepositoryException
+    {
+        LineOutputHandlerImpl goh = new LineOutputHandlerImpl();
+        GitCommandBuilder commandBuilder = createCommandBuilder("ls-remote", accessData.repositoryUrl, branchRef);
+        runCommand(commandBuilder, workingDirectory, goh);
+        Set<String> result = Sets.newHashSet();
+        for (String ref : goh.getLines())
+        {
+            if (ref.contains(branchRef))
+            {
+                return ref.substring(0, ref.indexOf(branchRef)).trim();
+            }
+
+        }
+        return null;
     }
 
     public Set<String> getRemoteRefs(File workingDirectory, GitRepository.GitRepositoryAccessData accessData) throws RepositoryException

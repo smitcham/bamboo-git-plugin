@@ -40,7 +40,7 @@ public interface GitOperationHelper
     @NotNull
     List<VcsBranch> getOpenBranches(@NotNull final GitRepository.GitRepositoryAccessData repositoryData, final File workingDir) throws RepositoryException;
 
-    boolean checkRevisionExistsInCacheRepository(@NotNull File repositoryDirectory, @NotNull String targetRevision) throws IOException;
+    boolean checkRevisionExistsInCacheRepository(@NotNull File repositoryDirectory, @NotNull String targetRevision) throws IOException, RepositoryException;
 
     @Nullable
     CommitContext getCommit(File directory, String targetRevision) throws RepositoryException;

@@ -2,6 +2,7 @@ package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.commit.CommitContext;
+import com.atlassian.bamboo.core.RepositoryUrlObfuscator;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
 import com.atlassian.bamboo.repository.RepositoryException;
@@ -17,7 +18,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -379,16 +379,12 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
 
                 buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.fetchingBranch", resolvedBranch, accessData.repositoryUrl)
                                              + (useShallow ? " " + i18nResolver.getText("repository.git.messages.doingShallowFetch") : ""));
-                RefSpec refSpec = new RefSpec()
-                        .setForceUpdate(true)
-                        .setSource(resolvedBranch)
-                        .setDestination(resolvedBranch);
 
-                gitCommandProcessor.runFetchCommand(sourceDirectory, proxiedAccessData, refSpec, useShallow);
+                gitCommandProcessor.runFetchCommand(sourceDirectory, proxiedAccessData, "+"+resolvedBranch+":"+resolvedBranch, useShallow);
 
                 if (resolvedBranch.startsWith(Constants.R_HEADS))
                 {
-                    //git update?
+                    gitCommandProcessor.runCheckoutCommandForBranchOrRevision(sourceDirectory, StringUtils.removeStart(resolvedBranch, Constants.R_HEADS));
                 }
             }
             finally
@@ -453,33 +449,54 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         }
     }
 
-    //NOT IMPLEMENTED WILL DO SOMEDAY:
     @NotNull
     @Override
     public String getCurrentRevision(@NotNull final File sourceDirectory) throws RepositoryException
     {
-        return null;
+        return gitCommandProcessor.getRevisionHash(sourceDirectory, Constants.HEAD);
     }
 
     @Override
     public String getRevisionIfExists(@NotNull final File sourceDirectory, @NotNull final String revision)
     {
-        return null;
+        try
+        {
+            return gitCommandProcessor.getRevisionHash(sourceDirectory, revision);
+        }
+        catch (RepositoryException e)
+        {
+            return null;
+        }
     }
 
     @NotNull
     @Override
     public String obtainLatestRevision() throws RepositoryException
     {
-        return null;
+        final GitRepository.GitRepositoryAccessData proxiedAccessData = adjustRepositoryAccess(accessData);
+        try
+        {
+            File workingDir = new File(".");
+            String result = gitCommandProcessor.getRemoteBranchLatestCommitHash(workingDir, proxiedAccessData, resolveBranch(proxiedAccessData, workingDir, accessData.branch));
+            if (result == null)
+            {
+                throw new RepositoryException("Could not retrieve latest revision of branch " + accessData.branch + " from " + RepositoryUrlObfuscator.obfuscatePasswordInUrl(accessData.repositoryUrl));
+            }
+            return result;
+        }
+        finally
+        {
+            closeProxy(proxiedAccessData);
+        }
     }
 
     @Override
-    public boolean checkRevisionExistsInCacheRepository(@NotNull final File repositoryDirectory, @NotNull final String targetRevision) throws IOException
+    public boolean checkRevisionExistsInCacheRepository(@NotNull final File repositoryDirectory, @NotNull final String targetRevision) throws RepositoryException
     {
-        return false;
+        return targetRevision.equals(gitCommandProcessor.getRevisionHash(repositoryDirectory, targetRevision));
     }
 
+    //NOT IMPLEMENTED WILL DO SOMEDAY:
     @Override
     public CommitContext getCommit(final File directory, final String targetRevision) throws RepositoryException
     {

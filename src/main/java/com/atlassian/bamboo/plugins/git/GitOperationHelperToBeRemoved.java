@@ -369,7 +369,7 @@ public abstract class GitOperationHelperToBeRemoved extends AbstractGitOperation
      * @throws IOException thrown when revision not found (MissingObjectException)
      */
     @Override
-    public boolean checkRevisionExistsInCacheRepository(@NotNull File repositoryDirectory, @NotNull String targetRevision) throws IOException
+    public boolean checkRevisionExistsInCacheRepository(@NotNull File repositoryDirectory, @NotNull String targetRevision) throws IOException, RepositoryException
     {
         final FileRepository localRepository = createLocalRepository(repositoryDirectory, null);
         try
