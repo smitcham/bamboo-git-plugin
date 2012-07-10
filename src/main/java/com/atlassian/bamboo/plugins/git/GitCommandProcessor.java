@@ -49,6 +49,7 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
             "#!/bin/sh\n" +
                     "exec ssh " + SSH_OPTIONS + " $@\n";
 
+    private static final String COMMIT_FORMAT_STRING="[hash]%H%n[commiter]%cN%n[timestamp]%ct%n[summary]%s%n[parents]%P%n[next]";
     // ------------------------------------------------------------------------------------------------- Type Properties
 
     private final String gitExecutable;
