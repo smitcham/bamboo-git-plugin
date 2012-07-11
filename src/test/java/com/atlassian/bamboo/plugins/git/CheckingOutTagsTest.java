@@ -1,6 +1,7 @@
 package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.plan.branch.BranchIntegrationHelper;
+import com.atlassian.bamboo.plan.branch.BranchIntegrationService;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import org.apache.commons.io.FileUtils;
@@ -26,7 +27,7 @@ public class CheckingOutTagsTest extends GitAbstractTest
     @BeforeClass
     public void setUpBranchIntegrationHelper() throws Exception
     {
-        mockSpringComponent("branchIntegrationHelper", BranchIntegrationHelper.class);
+        mockSpringComponent("branchIntegrationService", BranchIntegrationService.class);
     }
 
     @BeforeClass
