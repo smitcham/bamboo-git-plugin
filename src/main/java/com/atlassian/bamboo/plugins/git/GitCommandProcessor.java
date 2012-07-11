@@ -224,15 +224,8 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         GitCommandBuilder commandBuilder = createCommandBuilder("log", "-1", "--format=%H");
         commandBuilder.append(revision);
         final GitStringOutputHandler outputHandler = new GitStringOutputHandler();
-        int exitCode = runCommand(commandBuilder, workingDirectory, outputHandler);
-        if (exitCode == 0)
-        {
-            return outputHandler.getOutput().trim();
-        }
-        else
-        {
-            throw new RepositoryException("Git operation failed with exit code " + exitCode);
-        }
+        runCommand(commandBuilder, workingDirectory, outputHandler);
+        return outputHandler.getOutput().trim();
     }
 
     // -------------------------------------------------------------------------------------------------- Helper Methods
@@ -267,7 +260,6 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         LineOutputHandlerImpl goh = new LineOutputHandlerImpl();
         GitCommandBuilder commandBuilder = createCommandBuilder("ls-remote", accessData.repositoryUrl, branchRef);
         runCommand(commandBuilder, workingDirectory, goh);
-        Set<String> result = Sets.newHashSet();
         for (String ref : goh.getLines())
         {
             if (ref.contains(branchRef))
@@ -391,10 +383,10 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         return commits.get(0);
     }
 
-    public Pair<List<CommitContext>, Integer> runLogCommand(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision) throws RepositoryException
+    public Pair<List<CommitContext>, Integer> runLogCommand(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision, final int maxCommits) throws RepositoryException
     {
         GitCommandBuilder commandBuilder = createCommandBuilder("log", "-p", "--name-only", "--format=" + CommitOutputHandler.LOG_COMMAND_FORMAT_STRING, lastVcsRevisionKey + ".." + targetRevision);
-        final CommitOutputHandler coh = new CommitOutputHandler();
+        final CommitOutputHandler coh = new CommitOutputHandler(maxCommits);
         runCommand(commandBuilder, cacheDirectory, coh);
         return new Pair<List<CommitContext>, Integer>(coh.getExtractedCommits(), coh.getSkippedCommitCount());
     }

@@ -2,6 +2,7 @@ package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.commit.CommitContext;
+import com.atlassian.bamboo.core.RepositoryUrlObfuscator;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
 import com.atlassian.bamboo.repository.InvalidRepositoryException;
@@ -44,7 +45,6 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     // ------------------------------------------------------------------------------------------------- Type Properties
     protected SshProxyService sshProxyService;
     GitCommandProcessor gitCommandProcessor;
-    private static final String[] FQREF_PREFIXES = {Constants.R_HEADS, Constants.R_REFS};
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
 
@@ -451,7 +451,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
                 return candidate;
             }
         }
-        return null;
+        throw new InvalidRepositoryException(i18nResolver.getText("repository.git.messages.cannotDetermineHead", RepositoryUrlObfuscator.obfuscatePasswordInUrl(accessData.repositoryUrl), accessData.branch));
     }
 
     @NotNull
@@ -509,7 +509,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
             String result = gitCommandProcessor.getRemoteBranchLatestCommitHash(workingDir, proxiedAccessData, resolveBranch(proxiedAccessData, workingDir, accessData.branch));
             if (result == null)
             {
-                throw new InvalidRepositoryException(i18nResolver.getText("repository.git.messages.cannotDetermineHead", accessData.repositoryUrl, accessData.branch));
+                throw new InvalidRepositoryException(i18nResolver.getText("repository.git.messages.cannotDetermineHead", RepositoryUrlObfuscator.obfuscatePasswordInUrl(accessData.repositoryUrl), accessData.branch));
             }
             return result;
         }
@@ -534,7 +534,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     @Override
     public BuildRepositoryChanges extractCommits(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision) throws RepositoryException
     {
-        Pair<List<CommitContext>, Integer> result = gitCommandProcessor.runLogCommand(cacheDirectory, lastVcsRevisionKey, targetRevision);
+        Pair<List<CommitContext>, Integer> result = gitCommandProcessor.runLogCommand(cacheDirectory, lastVcsRevisionKey, targetRevision, CHANGESET_LIMIT);
         BuildRepositoryChanges buildChanges = new BuildRepositoryChangesImpl(targetRevision, result.getFirst());
         buildChanges.setSkippedCommitsCount(result.getSecond());
         return buildChanges;
