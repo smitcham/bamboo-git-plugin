@@ -1,11 +1,13 @@
 package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
+import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.core.RepositoryUrlObfuscator;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.ProxyErrorReceiver;
 import com.atlassian.bamboo.util.BambooFileUtils;
 import com.atlassian.bamboo.util.BambooFilenameUtils;
+import com.atlassian.bamboo.utils.Pair;
 import com.atlassian.utils.process.ExternalProcess;
 import com.atlassian.utils.process.ExternalProcessBuilder;
 import com.atlassian.utils.process.LineOutputHandler;
@@ -21,7 +23,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.transport.RefSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,7 +50,6 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
             "#!/bin/sh\n" +
                     "exec ssh " + SSH_OPTIONS + " $@\n";
 
-    private static final String COMMIT_FORMAT_STRING="[hash]%H%n[commiter]%cN%n[timestamp]%ct%n[summary]%s%n[parents]%P%n[next]";
     // ------------------------------------------------------------------------------------------------- Type Properties
 
     private final String gitExecutable;
@@ -291,7 +291,10 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
             {
                 continue;
             }
-            result.add(ref.substring(ref.indexOf("refs")));
+            if (ref.contains("refs"))
+            {
+                result.add(ref.substring(ref.indexOf("refs")));
+            }
         }
         return result;
     }
@@ -372,6 +375,28 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         final LoggingOutputHandler mergeOutputHandler = new LoggingOutputHandler(buildLogger);
         runCommand(commandBuilder, workspaceDir, mergeOutputHandler);
         log.debug(mergeOutputHandler.getStdout());
+    }
+
+    public CommitContext extractCommit(final File directory, final String targetRevision) throws  RepositoryException
+    {
+        final CommitOutputHandler coh = new CommitOutputHandler();
+        GitCommandBuilder commandBuilder = createCommandBuilder("log", "-1", "--format=" + CommitOutputHandler.LOG_COMMAND_FORMAT_STRING, targetRevision);
+        runCommand(commandBuilder, directory, coh);
+        List<CommitContext> commits = coh.getExtractedCommits();
+
+        if (commits.isEmpty())
+        {
+            throw new RepositoryException("Could not find commit with revision " + targetRevision);
+        }
+        return commits.get(0);
+    }
+
+    public Pair<List<CommitContext>, Integer> runLogCommand(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision) throws RepositoryException
+    {
+        GitCommandBuilder commandBuilder = createCommandBuilder("log", "-p", "--name-only", "--format=" + CommitOutputHandler.LOG_COMMAND_FORMAT_STRING, lastVcsRevisionKey + ".." + targetRevision);
+        final CommitOutputHandler coh = new CommitOutputHandler();
+        runCommand(commandBuilder, cacheDirectory, coh);
+        return new Pair<List<CommitContext>, Integer>(coh.getExtractedCommits(), coh.getSkippedCommitCount());
     }
 
     interface GitOutputHandler extends OutputHandler

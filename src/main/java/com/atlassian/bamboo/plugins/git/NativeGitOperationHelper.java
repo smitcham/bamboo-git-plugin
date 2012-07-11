@@ -2,15 +2,17 @@ package com.atlassian.bamboo.plugins.git;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.commit.CommitContext;
-import com.atlassian.bamboo.core.RepositoryUrlObfuscator;
 import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
+import com.atlassian.bamboo.repository.InvalidRepositoryException;
 import com.atlassian.bamboo.repository.RepositoryException;
 import com.atlassian.bamboo.ssh.ProxyConnectionData;
 import com.atlassian.bamboo.ssh.ProxyConnectionDataBuilder;
 import com.atlassian.bamboo.ssh.ProxyException;
 import com.atlassian.bamboo.ssh.SshProxyService;
+import com.atlassian.bamboo.utils.Pair;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
+import com.atlassian.bamboo.v2.build.BuildRepositoryChangesImpl;
 import com.atlassian.sal.api.message.I18nResolver;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -18,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.storage.file.RefDirectory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,7 +44,6 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     // ------------------------------------------------------------------------------------------------- Type Properties
     protected SshProxyService sshProxyService;
     GitCommandProcessor gitCommandProcessor;
-    private static final String TEMP_PLACEHOLDER_FOR_ERRORS = "blah blah blah";
     private static final String[] FQREF_PREFIXES = {Constants.R_HEADS, Constants.R_REFS};
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
@@ -297,29 +300,55 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         return StringUtils.isNotBlank(password) ? (username + ":" + password) : username;
     }
 
-    private void createLocalRepository(final File sourceDirectory, final File cacheDirectory) throws RepositoryException
+    private void createLocalRepository(final File sourceDirectory, final File cacheDirectory) throws RepositoryException, IOException
     {
-        //setup local repository
-        try
+
+        File gitDirectory = new File(sourceDirectory, Constants.DOT_GIT);
+        String headRef = null;
+        File cacheGitDir = null;
+        File alternateObjectDir = null;
+        if (cacheDirectory != null && cacheDirectory.exists())
         {
-            //first check if repository exists
-            File gitDirectory = new File(sourceDirectory, ".git");
-            if (!gitDirectory.isDirectory())
+            cacheGitDir = new File(cacheDirectory, Constants.DOT_GIT);
+            File objectsCache = new File(cacheGitDir, "objects");
+            if (objectsCache.exists())
             {
-                if (cacheDirectory != null && cacheDirectory.isDirectory())
-                {
-                    //perform clone from cache
-                    gitCommandProcessor.runCloneCommand(sourceDirectory, cacheDirectory.getAbsolutePath(), accessData.useShallowClones, accessData.verboseLogs);
-                }
-                else
-                {
-                    gitCommandProcessor.runInitCommand(sourceDirectory);
-                }
+                alternateObjectDir = objectsCache;
+                headRef = FileUtils.readFileToString(new File(cacheGitDir, Constants.HEAD));
             }
         }
-        catch (Exception e)
+
+        if (!gitDirectory.exists())
         {
-            throw new RepositoryException(buildLogger.addErrorLogEntry(i18nResolver.getText(TEMP_PLACEHOLDER_FOR_ERRORS) + e.getMessage()), e);
+            buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.creatingGitRepository", gitDirectory));
+            gitCommandProcessor.runInitCommand(sourceDirectory);
+        }
+
+        // lets update alternatives here for a moment
+        if (alternateObjectDir !=null)
+        {
+            List<String> alternatePaths = new ArrayList<String>(1);
+            alternatePaths.add(alternateObjectDir.getAbsolutePath());
+            final File alternates = new File(new File(new File(gitDirectory, "objects"), "info"), "alternates");
+            FileUtils.writeLines(alternates, alternatePaths, "\n");
+        }
+
+        if (cacheGitDir != null && cacheGitDir.isDirectory())
+        {
+            // copy tags and branches heads from the cache repository
+            FileUtils.copyDirectoryToDirectory(new File(cacheGitDir, Constants.R_TAGS), new File(gitDirectory, Constants.R_REFS));
+            FileUtils.copyDirectoryToDirectory(new File(cacheGitDir, Constants.R_HEADS), new File(gitDirectory, Constants.R_REFS));
+
+            File shallow = new File(cacheGitDir, "shallow");
+            if (shallow.exists())
+            {
+                FileUtils.copyFileToDirectory(shallow, gitDirectory);
+            }
+        }
+
+        if (StringUtils.startsWith(headRef, RefDirectory.SYMREF))
+        {
+            FileUtils.writeStringToFile(new File(gitDirectory, Constants.HEAD), headRef);
         }
     }
 
@@ -480,7 +509,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
             String result = gitCommandProcessor.getRemoteBranchLatestCommitHash(workingDir, proxiedAccessData, resolveBranch(proxiedAccessData, workingDir, accessData.branch));
             if (result == null)
             {
-                throw new RepositoryException("Could not retrieve latest revision of branch " + accessData.branch + " from " + RepositoryUrlObfuscator.obfuscatePasswordInUrl(accessData.repositoryUrl));
+                throw new InvalidRepositoryException(i18nResolver.getText("repository.git.messages.cannotDetermineHead", accessData.repositoryUrl, accessData.branch));
             }
             return result;
         }
@@ -496,16 +525,18 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         return targetRevision.equals(gitCommandProcessor.getRevisionHash(repositoryDirectory, targetRevision));
     }
 
-    //NOT IMPLEMENTED WILL DO SOMEDAY:
     @Override
     public CommitContext getCommit(final File directory, final String targetRevision) throws RepositoryException
     {
-        return null;
+        return gitCommandProcessor.extractCommit(directory, targetRevision);
     }
 
     @Override
     public BuildRepositoryChanges extractCommits(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision) throws RepositoryException
     {
-        return null;
+        Pair<List<CommitContext>, Integer> result = gitCommandProcessor.runLogCommand(cacheDirectory, lastVcsRevisionKey, targetRevision);
+        BuildRepositoryChanges buildChanges = new BuildRepositoryChangesImpl(targetRevision, result.getFirst());
+        buildChanges.setSkippedCommitsCount(result.getSecond());
+        return buildChanges;
     }
 }
