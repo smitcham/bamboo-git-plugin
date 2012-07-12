@@ -20,16 +20,18 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
 
     // ------------------------------------------------------------------------------------------------------- Constants
     private static final String HASH = "[hash]";
-    private static final String COMMITER = "[commiter]";
+    private static final String COMMITER_NAME = "[commiter_name]";
+    private static final String COMMITER_EMAIL = "[commiter_email]";
     private static final String TIMESTAMP = "[timestamp]";
     private static final String SUMMARY = "[summary]";
 
-    public static final String LOG_COMMAND_FORMAT_STRING = HASH+"%H%n"+COMMITER+"%cN <%ce>%n"+TIMESTAMP+"%ct%n"+SUMMARY+"%s%n";
+    public static final String LOG_COMMAND_FORMAT_STRING = HASH+"%H%n"+COMMITER_NAME+"%cN%n"+COMMITER_EMAIL+"%ce%n"+TIMESTAMP+"%ct%n"+SUMMARY+"%s%n";
 
     // ------------------------------------------------------------------------------------------------- Type Properties
     List<CommitContext> extractedCommits = Lists.newArrayList();
     Set<String> shallows;
     CommitImpl currentCommit = null;
+    String commiterName = null;
     int skippedCommitCount;
     int maxCommitNumber;
 
@@ -69,14 +71,23 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
             else
             {
                 currentCommit = null;
+                commiterName = null;
                 skippedCommitCount++;
             }
         }
-        else if (line.startsWith(COMMITER))
+        else if (line.startsWith(COMMITER_NAME))
         {
             if (currentCommit != null)
             {
-                currentCommit.setAuthor(new AuthorImpl(getLineContent(COMMITER, line)));
+                commiterName = getLineContent(COMMITER_NAME, line);
+            }
+        }
+        else if (line.startsWith(COMMITER_EMAIL))
+        {
+            if (currentCommit != null && !StringUtils.isBlank(commiterName))
+            {
+                String email = getLineContent(COMMITER_EMAIL, line);
+                currentCommit.setAuthor(new AuthorImpl(String.format("%s <%s>", commiterName, email), null, email));
             }
         }
         else if (line.startsWith(TIMESTAMP))
