@@ -170,7 +170,7 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         if (!useShallow && shallowFile.exists())
         {
             //directory has shallows: we need to make it deep
-            commandBuilder.append("--depth 99999999");
+            commandBuilder.append("--depth=99999999");
         }
         if (accessData.verboseLogs)
         {
