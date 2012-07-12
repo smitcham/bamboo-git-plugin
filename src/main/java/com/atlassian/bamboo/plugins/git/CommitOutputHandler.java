@@ -7,10 +7,12 @@ import com.atlassian.bamboo.commit.CommitImpl;
 import com.atlassian.utils.process.LineOutputHandler;
 import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.tuckey.web.filters.urlrewrite.utils.StringUtils;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 public class CommitOutputHandler extends LineOutputHandler implements GitCommandProcessor.GitOutputHandler
 {
@@ -22,23 +24,26 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     private static final String TIMESTAMP = "[timestamp]";
     private static final String SUMMARY = "[summary]";
 
-    public static final String LOG_COMMAND_FORMAT_STRING = HASH+"%H%n"+COMMITER+"%cN%n"+TIMESTAMP+"%ct%n"+SUMMARY+"%s%n";
+    public static final String LOG_COMMAND_FORMAT_STRING = "\""+HASH+"%H%n"+COMMITER+"%cN <%ce>"+TIMESTAMP+"%ct%n"+SUMMARY+"%s%n"+"\"";
 
     // ------------------------------------------------------------------------------------------------- Type Properties
     List<CommitContext> extractedCommits = Lists.newArrayList();
+    Set<String> shallows;
     CommitImpl currentCommit = null;
     int skippedCommitCount;
     int maxCommitNumber;
 
     // ---------------------------------------------------------------------------------------------------- Dependencies
     // ---------------------------------------------------------------------------------------------------- Constructors
-    public CommitOutputHandler()
+    public CommitOutputHandler(@NotNull Set<String> shallows)
     {
+        this.shallows = shallows;
         maxCommitNumber = Integer.MAX_VALUE;
     }
 
-    public CommitOutputHandler(int maxCommitNumber)
+    public CommitOutputHandler(@NotNull Set<String> shallows, int maxCommitNumber)
     {
+        this.shallows = shallows;
         this.maxCommitNumber = maxCommitNumber;
     }
 
@@ -89,7 +94,7 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
                 currentCommit.setComment(getLineContent(SUMMARY, line));
             }
         }
-        else if (!StringUtils.isBlank(line) && currentCommit != null)
+        else if (!StringUtils.isBlank(line) && currentCommit != null && !shallows.contains(currentCommit.getChangeSetId()))
         {
             currentCommit.addFile(new CommitFileImpl(currentCommit.getChangeSetId(), line.trim()));
         }

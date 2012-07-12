@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -164,6 +165,12 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         if (useShallow)
         {
             commandBuilder.shallowClone();
+        }
+        File shallowFile = new File(new File(workingDirectory, ".git"), "shallow");
+        if (!useShallow && shallowFile.exists())
+        {
+            //directory has shallows: we need to make it deep
+            commandBuilder.append("--depth 99999999");
         }
         if (accessData.verboseLogs)
         {
@@ -371,7 +378,7 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
 
     public CommitContext extractCommit(final File directory, final String targetRevision) throws  RepositoryException
     {
-        final CommitOutputHandler coh = new CommitOutputHandler();
+        final CommitOutputHandler coh = new CommitOutputHandler(Collections.<String>emptySet());
         GitCommandBuilder commandBuilder = createCommandBuilder("log", "-1", "--format=" + CommitOutputHandler.LOG_COMMAND_FORMAT_STRING, targetRevision);
         runCommand(commandBuilder, directory, coh);
         List<CommitContext> commits = coh.getExtractedCommits();
@@ -383,10 +390,11 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
         return commits.get(0);
     }
 
-    public Pair<List<CommitContext>, Integer> runLogCommand(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision, final int maxCommits) throws RepositoryException
+    public Pair<List<CommitContext>, Integer> runLogCommand(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision, @NotNull final Set<String> shallows, final int maxCommits) throws RepositoryException
     {
         GitCommandBuilder commandBuilder = createCommandBuilder("log", "-p", "--name-only", "--format=" + CommitOutputHandler.LOG_COMMAND_FORMAT_STRING, lastVcsRevisionKey + ".." + targetRevision);
-        final CommitOutputHandler coh = new CommitOutputHandler(maxCommits);
+        log.info("from revision: [" + lastVcsRevisionKey + "]; to revision: [" + targetRevision + "]");
+        final CommitOutputHandler coh = new CommitOutputHandler(shallows, maxCommits);
         runCommand(commandBuilder, cacheDirectory, coh);
         return new Pair<List<CommitContext>, Integer>(coh.getExtractedCommits(), coh.getSkippedCommitCount());
     }

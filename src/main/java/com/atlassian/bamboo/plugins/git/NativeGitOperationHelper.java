@@ -17,6 +17,7 @@ import com.atlassian.bamboo.v2.build.BuildRepositoryChangesImpl;
 import com.atlassian.sal.api.message.I18nResolver;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -534,9 +535,35 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
     @Override
     public BuildRepositoryChanges extractCommits(final File cacheDirectory, final String lastVcsRevisionKey, final String targetRevision) throws RepositoryException
     {
-        Pair<List<CommitContext>, Integer> result = gitCommandProcessor.runLogCommand(cacheDirectory, lastVcsRevisionKey, targetRevision, CHANGESET_LIMIT);
+        Pair<List<CommitContext>, Integer> result = gitCommandProcessor.runLogCommand(cacheDirectory, lastVcsRevisionKey, targetRevision, getShallows(cacheDirectory), CHANGESET_LIMIT);
         BuildRepositoryChanges buildChanges = new BuildRepositoryChangesImpl(targetRevision, result.getFirst());
         buildChanges.setSkippedCommitsCount(result.getSecond());
         return buildChanges;
+    }
+
+    private Set<String> getShallows(final File cacheDirectory)
+    {
+        File shallowFile = new File(new File(cacheDirectory, ".git"), "shallow");
+        if (shallowFile.exists())
+        {
+            try
+            {
+                Collection<String> shallowFileContent = FileUtils.readLines(shallowFile);
+                Set<String> result = Sets.newHashSet();
+                for (String aShallow : shallowFileContent)
+                {
+                    if (!StringUtils.isBlank(aShallow))
+                    {
+                        result.add(aShallow.trim());
+                    }
+                }
+                return result;
+            }
+            catch (IOException e)
+            {
+                log.warn("Cannot read 'shallow' file " + shallowFile.getAbsolutePath());
+            }
+        }
+        return Collections.emptySet();
     }
 }
