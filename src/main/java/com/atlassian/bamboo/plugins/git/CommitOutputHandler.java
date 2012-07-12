@@ -24,7 +24,7 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     private static final String TIMESTAMP = "[timestamp]";
     private static final String SUMMARY = "[summary]";
 
-    public static final String LOG_COMMAND_FORMAT_STRING = "\""+HASH+"%H%n"+COMMITER+"%cN <%ce>"+TIMESTAMP+"%ct%n"+SUMMARY+"%s%n"+"\"";
+    public static final String LOG_COMMAND_FORMAT_STRING = HASH+"%H%n"+COMMITER+"%cN <%ce>%n"+TIMESTAMP+"%ct%n"+SUMMARY+"%s%n";
 
     // ------------------------------------------------------------------------------------------------- Type Properties
     List<CommitContext> extractedCommits = Lists.newArrayList();

@@ -303,7 +303,10 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
 
     private void createLocalRepository(final File sourceDirectory, final File cacheDirectory) throws RepositoryException, IOException
     {
-
+        if (!sourceDirectory.exists())
+        {
+            sourceDirectory.mkdirs();
+        }
         File gitDirectory = new File(sourceDirectory, Constants.DOT_GIT);
         String headRef = null;
         File cacheGitDir = null;
