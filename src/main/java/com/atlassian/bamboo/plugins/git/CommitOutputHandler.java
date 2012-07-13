@@ -88,7 +88,6 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
                 {
                     if (currentCommit != null && commitMessage != null)
                     {
-                        commitMessage.append('\n');
                         currentCommit.setComment(commitMessage.toString());
                         commitMessage = null;
                     }

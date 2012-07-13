@@ -91,7 +91,7 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         }
 
         GitCommandBuilder commandBuilder = gitCommandProcessor
-                .createCommandBuilder("commit", "-m", message, "--all")
+                .createCommandBuilder("commit", "--all", "-m", message)
                 .env(identificationVariables(comitterName, comitterEmail));
 
         if (accessData.verboseLogs)
