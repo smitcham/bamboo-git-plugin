@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Constants;
@@ -551,16 +552,24 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
         {
             try
             {
-                Collection<String> shallowFileContent = FileUtils.readLines(shallowFile);
-                Set<String> result = Sets.newHashSet();
-                for (String aShallow : shallowFileContent)
+                LineIterator shallowFileContent = FileUtils.lineIterator(shallowFile);
+                try
                 {
-                    if (!StringUtils.isBlank(aShallow))
+                    Set<String> result = Sets.newHashSet();
+                    while (shallowFileContent.hasNext())
                     {
-                        result.add(aShallow.trim());
+                        String aShallow = shallowFileContent.nextLine();
+                        if (!StringUtils.isBlank(aShallow))
+                        {
+                            result.add(aShallow.trim());
+                        }
                     }
+                    return result;
                 }
-                return result;
+                finally
+                {
+                    LineIterator.closeQuietly(shallowFileContent);
+                }
             }
             catch (IOException e)
             {
