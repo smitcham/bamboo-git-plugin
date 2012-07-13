@@ -73,7 +73,7 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     {
         if (extractedCommits.size() < maxCommitNumber)
         {
-            if (line.startsWith(HASH))
+            if (parserState != CommitParserState.COMMIT_MESSAGE && line.startsWith(HASH))
             {
                 parserState = CommitParserState.INFO;
                 currentCommit = new CommitImpl();
@@ -82,50 +82,58 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
                 currentCommit.setChangeSetId(getLineContent(HASH,line));
                 extractedCommits.add(currentCommit);
             }
-            else if (line.startsWith(COMMITER_NAME))
+            if (parserState == CommitParserState.COMMIT_MESSAGE)
             {
-                if (currentCommit != null)
+                if (line.startsWith(FILE_LIST))
                 {
-                    commiterName = getLineContent(COMMITER_NAME, line);
+                    if (currentCommit != null && commitMessage != null)
+                    {
+                        commitMessage.append('\n');
+                        currentCommit.setComment(commitMessage.toString());
+                        commitMessage = null;
+                    }
+                    parserState = CommitParserState.FILE_LIST;
                 }
-            }
-            else if (line.startsWith(COMMITER_EMAIL))
-            {
-                if (currentCommit != null && !StringUtils.isBlank(commiterName))
+                else
                 {
-                    String email = getLineContent(COMMITER_EMAIL, line);
-                    currentCommit.setAuthor(new AuthorImpl(String.format("%s <%s>", commiterName, email), null, email));
+                    commitMessage.append('\n');
+                    commitMessage.append(line);
                 }
-            }
-            else if (line.startsWith(TIMESTAMP))
-            {
-                if (currentCommit != null)
-                {
-                    String timestampString = getLineContent(TIMESTAMP, line);
-                    currentCommit.setDate(new Date(Long.parseLong(timestampString)*1000));
-                }
-            }
-            else if (line.startsWith(COMMIT_MESSAGE))
-            {
-                commitMessage = new StringBuilder(getLineContent(COMMIT_MESSAGE, line));
-                parserState = CommitParserState.COMMIT_MESSAGE;
-            }
-            else if (line.startsWith(FILE_LIST))
-            {
-                if (currentCommit != null && commitMessage != null)
-                {
-                    currentCommit.setComment(commitMessage.toString() + '\n');
-                    commitMessage = null;
-                }
-                parserState = CommitParserState.FILE_LIST;
-            }
-            else if (parserState == CommitParserState.COMMIT_MESSAGE)
-            {
-                commitMessage.append('\n' + line);
             }
             else if (parserState == CommitParserState.FILE_LIST && currentCommit != null && !StringUtils.isBlank(line) && !shallows.contains(currentCommit.getChangeSetId()))
             {
                 currentCommit.addFile(new CommitFileImpl(currentCommit.getChangeSetId(), line.trim()));
+            }
+            else if (parserState == CommitParserState.INFO)
+            {
+                if (line.startsWith(COMMITER_NAME))
+                {
+                    if (currentCommit != null)
+                    {
+                        commiterName = getLineContent(COMMITER_NAME, line);
+                    }
+                }
+                else if (line.startsWith(COMMITER_EMAIL))
+                {
+                    if (currentCommit != null && !StringUtils.isBlank(commiterName))
+                    {
+                        String email = getLineContent(COMMITER_EMAIL, line);
+                        currentCommit.setAuthor(new AuthorImpl(String.format("%s <%s>", commiterName, email), null, email));
+                    }
+                }
+                else if (line.startsWith(TIMESTAMP))
+                {
+                    if (currentCommit != null)
+                    {
+                        String timestampString = getLineContent(TIMESTAMP, line);
+                        currentCommit.setDate(new Date(Long.parseLong(timestampString)*1000));
+                    }
+                }
+                else if (line.startsWith(COMMIT_MESSAGE))
+                {
+                    commitMessage = new StringBuilder(getLineContent(COMMIT_MESSAGE, line));
+                    parserState = CommitParserState.COMMIT_MESSAGE;
+                }
             }
         }
         else if (line.startsWith(HASH)) //too many commits
