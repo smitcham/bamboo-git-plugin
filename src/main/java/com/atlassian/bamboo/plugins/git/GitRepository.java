@@ -317,7 +317,7 @@ public class GitRepository extends AbstractStandaloneRepository implements Maven
                     {
                         try
                         {
-                            helper.fetch(cacheDirectory, doShallowFetch);
+                            helper.fetch(cacheDirectory, doShallowFetch && !cacheDirectory.isDirectory());
                             helper.checkRevisionExistsInCacheRepository(cacheDirectory, targetRevision);
                         }
                         catch (Exception e)
