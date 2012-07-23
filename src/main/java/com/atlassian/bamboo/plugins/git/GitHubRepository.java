@@ -379,7 +379,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     @Override
     public boolean isMergingSupported()
     {
-        return true;
+        return gitRepository.isMergingSupported();
     }
 
     @Override
