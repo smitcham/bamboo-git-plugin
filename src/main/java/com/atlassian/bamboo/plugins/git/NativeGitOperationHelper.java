@@ -416,10 +416,10 @@ public class NativeGitOperationHelper extends AbstractGitOperationHelper impleme
 
                 gitCommandProcessor.runFetchCommand(sourceDirectory, proxiedAccessData, "+"+resolvedBranch+":"+resolvedBranch, useShallow);
 
-                if (resolvedBranch.startsWith(Constants.R_HEADS))
-                {
-                    gitCommandProcessor.runCheckoutCommandForBranchOrRevision(sourceDirectory, StringUtils.removeStart(resolvedBranch, Constants.R_HEADS));
-                }
+                //if (resolvedBranch.startsWith(Constants.R_HEADS))
+                //{
+                //    gitCommandProcessor.runCheckoutCommandForBranchOrRevision(sourceDirectory, StringUtils.removeStart(resolvedBranch, Constants.R_HEADS));
+                //}
             }
             finally
             {
