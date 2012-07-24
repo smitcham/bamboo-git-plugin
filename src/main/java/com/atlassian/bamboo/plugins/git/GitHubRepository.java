@@ -398,6 +398,6 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     @Override
     public String commit(@NotNull final File file, @NotNull final String s) throws RepositoryException
     {
-        return commit(file, s);
+        return gitRepository.commit(file, s);
     }
 }
