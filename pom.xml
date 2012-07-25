@@ -22,6 +22,25 @@
   </scm>
 
   <dependencies>
+
+    <!--
+      See BUILDENG-2047
+
+      There is actually a dependency on commons codec 1.4 that is used by the
+      GitCacheDirectory class. This worked in plugins 1 land as Bamboo itself uses
+      commons codec 1.4. However, in plugins 2 land, only commons codec 1.3
+      is exported by the system bundle.
+
+      Declaring this dependency brings in commons-codec 1.4 as Private-Package
+      when classpath scanning takes place for AMPS. We can't use codec 1.3
+      as it causes the tests to fail. I tried :(
+      -->
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.4</version>
+    </dependency>
+
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
