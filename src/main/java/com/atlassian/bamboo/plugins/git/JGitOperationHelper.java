@@ -10,7 +10,6 @@ import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheCheckout;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepository;
@@ -91,7 +90,7 @@ public class JGitOperationHelper extends GitOperationHelper
     }
 
     @Override
-    protected String doCheckout(@NotNull final FileRepository localRepository, @NotNull final File sourceDirectory, @NotNull final String targetRevision, @Nullable final String previousRevision, final boolean useSubmodules) throws RepositoryException
+    protected String doCheckout(@NotNull final FileRepository localRepository, @NotNull final File sourceDirectory, @NotNull final String branchRefSpec, @NotNull final String targetRevision, @Nullable final String previousRevision, final boolean useSubmodules) throws RepositoryException
     {
         if (useSubmodules)
         {
@@ -123,10 +122,10 @@ public class JGitOperationHelper extends GitOperationHelper
                 throw new RepositoryException(buildLogger.addErrorLogEntry(message));
             }
 
-            final RefUpdate refUpdate = localRepository.updateRef(Constants.HEAD);
-            refUpdate.setNewObjectId(targetCommit);
-            refUpdate.forceUpdate();
-            // if new branch -> refUpdate.link() instead of forceUpdate()
+            boolean createDetachedHead = false;
+            localRepository
+                    .updateRef(Constants.HEAD, createDetachedHead)
+                    .link(branchRefSpec);
 
             return targetCommit.getId().getName();
         }

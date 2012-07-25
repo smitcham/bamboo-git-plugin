@@ -53,6 +53,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Class used for issuing various git operations. We don't want to hold this logic in
@@ -92,6 +93,7 @@ public abstract class GitOperationHelper
 
     protected abstract String doCheckout(@NotNull final FileRepository localRepository,
                                          @NotNull File sourceDirectory,
+                                         @NotNull String branchRefSpec,
                                          @NotNull String targetRevision,
                                          @Nullable String previousRevision,
                                          final boolean useSubmodules) throws RepositoryException;
@@ -162,7 +164,23 @@ public abstract class GitOperationHelper
                 File lck = new File(localRepository.getIndexFile().getParentFile(), localRepository.getIndexFile().getName() + ".lock");
                 FileUtils.deleteQuietly(lck);
 
-                return doCheckout(localRepository, sourceDirectory, targetRevision, previousRevision, accessData.useSubmodules);
+                String branchRefSpec;
+                try
+                {
+                    branchRefSpec = withTransport(localRepository, accessData, new WithTransportCallback<Exception, String>()
+                    {
+                        @Nullable
+                        @Override
+                        public String doWithTransport(@NotNull Transport transport) throws Exception
+                        {
+                            return getRefSpecForName(transport, accessData.branch);
+                        }
+                    });
+                } catch (Exception e)
+                {
+                    throw new RepositoryException("Unable to resolve branch name", e);
+                }
+                return doCheckout(localRepository, sourceDirectory, branchRefSpec, targetRevision, previousRevision, accessData.useSubmodules);
             }
             finally
             {
@@ -182,7 +200,8 @@ public abstract class GitOperationHelper
 
     private void fetch(@NotNull final File sourceDirectory, final String branch, final boolean useShallow) throws RepositoryException
     {
-        final String[] branchDescription = {"(unresolved) " + branch};
+        final AtomicReference<String> branchDescription = new AtomicReference<String>("(unresolved) " + branch);
+
         try
         {
             final FileRepository localRepository = createLocalRepository(sourceDirectory, null);
@@ -190,27 +209,12 @@ public abstract class GitOperationHelper
             {
                 withTransport(localRepository, accessData, new WithTransportCallback<Exception, Void>()
                 {
+                    @Nullable
                     @Override
                     public Void doWithTransport(@NotNull Transport transport) throws Exception
                     {
-                        final String resolvedBranch;
-                        if (StringUtils.startsWithAny(branch, FQREF_PREFIXES))
-                        {
-                            resolvedBranch = branch;
-                        }
-                        else
-                        {
-                            resolvedBranch = withFetchConnection(transport, new WithFetchConnectionCallback<Exception, String>()
-                            {
-                                @Override
-                                public String doWithFetchConnection(@NotNull Transport transport, @NotNull FetchConnection connection) throws Exception
-                                {
-                                    final Ref ref = resolveRefSpec(branch, connection);
-                                    return ref.getName();
-                                }
-                            });
-                        }
-                        branchDescription[0] = resolvedBranch;
+                        final String resolvedBranch = getRefSpecForName(transport, branch);
+                        branchDescription.set(resolvedBranch);
 
                         buildLogger.addBuildLogEntry(textProvider.getText("repository.git.messages.fetchingBranch", Arrays.asList(resolvedBranch, accessData.repositoryUrl))
                                                              + (useShallow ? " " + textProvider.getText("repository.git.messages.doingShallowFetch") : ""));
@@ -220,11 +224,6 @@ public abstract class GitOperationHelper
                                 .setDestination(resolvedBranch);
 
                         doFetch(transport, sourceDirectory, refSpec, useShallow);
-
-                        if (resolvedBranch.startsWith(Constants.R_HEADS))
-                        {
-                            localRepository.updateRef(Constants.HEAD).link(resolvedBranch);
-                        }
 
                         return null;
                     }
@@ -237,7 +236,7 @@ public abstract class GitOperationHelper
         }
         catch (Exception e)
         {
-            String message = textProvider.getText("repository.git.messages.fetchingFailed", Arrays.asList(accessData.repositoryUrl, branchDescription[0], sourceDirectory));
+            String message = textProvider.getText("repository.git.messages.fetchingFailed", Arrays.asList(accessData.repositoryUrl, branchDescription.get(), sourceDirectory));
             throw new RepositoryException(buildLogger.addErrorLogEntry(message + " " + e.getMessage()), e);
         }
     }
@@ -387,22 +386,44 @@ public abstract class GitOperationHelper
     }
     
     // -------------------------------------------------------------------------------------- Basic Accessors / Mutators
-
-    @Nullable
-    protected static Ref resolveRefSpec(String branch, FetchConnection fetchConnection)
+    @NotNull
+    private static String getRefSpecForName(@NotNull Transport transport, @NotNull final String name) throws Exception
     {
-        final Collection<String> candidates;
-        if (StringUtils.isBlank(branch))
+        final String resolvedBranch;
+        if (StringUtils.startsWithAny(name, FQREF_PREFIXES))
         {
-            candidates = Arrays.asList(Constants.R_HEADS + Constants.MASTER, Constants.HEAD);
-        }
-        else if (StringUtils.startsWithAny(branch, FQREF_PREFIXES))
-        {
-            candidates = Collections.singletonList(branch);
+            resolvedBranch = name;
         }
         else
         {
-            candidates = Arrays.asList(branch, Constants.R_HEADS + branch, Constants.R_TAGS + branch);
+            resolvedBranch = withFetchConnection(transport, new WithFetchConnectionCallback<Exception, String>()
+            {
+                @Override
+                public String doWithFetchConnection(@NotNull Transport transport, @NotNull FetchConnection connection) throws Exception
+                {
+                    final Ref ref = resolveRefSpec(name, connection);
+                    return ref.getName();
+                }
+            });
+        }
+        return resolvedBranch;
+    }
+
+    @Nullable
+    protected static Ref resolveRefSpec(String name, FetchConnection fetchConnection)
+    {
+        final Collection<String> candidates;
+        if (StringUtils.isBlank(name))
+        {
+            candidates = Arrays.asList(Constants.R_HEADS + Constants.MASTER, Constants.HEAD);
+        }
+        else if (StringUtils.startsWithAny(name, FQREF_PREFIXES))
+        {
+            candidates = Collections.singletonList(name);
+        }
+        else
+        {
+            candidates = Arrays.asList(name, Constants.R_TAGS + name, Constants.R_HEADS + name);
         }
 
         for (String candidate : candidates)
@@ -690,10 +711,12 @@ public abstract class GitOperationHelper
 
     protected interface WithTransportCallback<E extends java.lang.Throwable, T>
     {
+        @Nullable
         T doWithTransport(@NotNull Transport transport) throws E;
     }
 
-    protected <E extends java.lang.Throwable, T> T withTransport(@NotNull FileRepository repository, 
+    @Nullable
+    protected <E extends java.lang.Throwable, T> T withTransport(@NotNull FileRepository repository,
                                                                  @NotNull final GitRepositoryAccessData accessData, 
                                                                  @NotNull WithTransportCallback<E, T> callback) throws E, RepositoryException
     {
@@ -713,7 +736,7 @@ public abstract class GitOperationHelper
         T doWithFetchConnection(@NotNull Transport transport, @NotNull FetchConnection connection) throws E;
     }
 
-    protected <E extends java.lang.Throwable, T> T withFetchConnection(@NotNull final Transport transport,
+    protected static <E extends java.lang.Throwable, T> T withFetchConnection(@NotNull final Transport transport,
                                                                        @NotNull final WithFetchConnectionCallback<E, T> callback) throws E, NotSupportedException, TransportException
     {
         final FetchConnection connection = transport.openFetch();
