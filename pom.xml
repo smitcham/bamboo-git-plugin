@@ -131,11 +131,6 @@
           <productVersion>${bamboo.version}</productVersion>
           <productDataVersion>${bamboo.data.version}</productDataVersion>
             <instructions>
-                <Import-Package>
-                    com.atlassian.bamboo.plugins.git,
-                    org.apache.commons.codec.digest;version="[1.0,2.0)",
-                    *
-                </Import-Package>
                 <Export-Package>
                     com.atlassian.bamboo.plugins.git
                 </Export-Package>
