@@ -7,6 +7,24 @@
 
   <resource type="i18n" name="i18n" location="com.atlassian.bamboo.plugins.git.i18n"/>
 
+  <web-resource key="github" name="GitHub Resources">
+    <transformation extension="js">
+      <transformer key="jsI18n"/>
+    </transformation>
+    <transformation extension="less">
+      <transformer key="less-transformer"/>
+    </transformation>
+
+    <dependency>bamboo.web.resources:ajs</dependency>
+    <dependency>bamboo.web.resources:underscore</dependency>
+
+    <resource type="download" name="github.js" location="javascript/github.js"/>
+    <resource type="download" name="github.css" location="github.less"/>
+
+    <context>bamboo.configuration</context>
+    <context>atl.admin</context>
+  </web-resource>
+
   <repository key="git" name="Git Repository" class="com.atlassian.bamboo.plugins.git.GitRepository">
     <description>A Git Repository</description>
     <resource type="freemarker" name="edit" location="/com/atlassian/bamboo/plugins/git/gitRepositoryEdit.ftl"/>
