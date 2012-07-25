@@ -387,7 +387,7 @@ public abstract class GitOperationHelper
     
     // -------------------------------------------------------------------------------------- Basic Accessors / Mutators
     @NotNull
-    private static String getRefSpecForName(@NotNull Transport transport, @NotNull final String name) throws Exception
+    private static String getRefSpecForName(@NotNull Transport transport, @Nullable final String name) throws Exception
     {
         final String resolvedBranch;
         if (StringUtils.startsWithAny(name, FQREF_PREFIXES))
@@ -410,7 +410,7 @@ public abstract class GitOperationHelper
     }
 
     @Nullable
-    protected static Ref resolveRefSpec(String name, FetchConnection fetchConnection)
+    protected static Ref resolveRefSpec(@Nullable String name, FetchConnection fetchConnection)
     {
         final Collection<String> candidates;
         if (StringUtils.isBlank(name))

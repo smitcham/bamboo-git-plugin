@@ -80,7 +80,7 @@ public class GitOperationHelperTest extends GitAbstractTest
     {
         File tmp = createTempDirectory();
         ZipResourceDirectory.copyZipResourceToDirectory(repositoryZip, tmp);
-        GitOperationHelper helper = createJGitOperationHelper(createAccessData(null));
+        GitOperationHelper helper = createJGitOperationHelper(createAccessData(tmp.getAbsolutePath()));
         String previousRevision = null;
 
         for(String[] testCase : targetRevisions)
