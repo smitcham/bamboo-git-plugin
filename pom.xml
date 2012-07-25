@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.atlassian.bamboo.plugins</groupId>
   <artifactId>atlassian-bamboo-plugin-git</artifactId>
-  <version>1.9.3-SNAPSHOT</version>
+  <version>1.9.4-SNAPSHOT</version>
   <packaging>atlassian-plugin</packaging>
 
   <name>Atlassian Bamboo Git Repository Plugin</name>
@@ -130,6 +130,11 @@
         <configuration>
           <productVersion>${bamboo.version}</productVersion>
           <productDataVersion>${bamboo.data.version}</productDataVersion>
+            <instructions>
+                <Export-Package>
+                    com.atlassian.bamboo.plugins.git
+                </Export-Package>
+            </instructions>
           <!--<extractDependencies>true</extractDependencies>-->
         </configuration>
       </plugin>
@@ -161,6 +166,7 @@
             <configuration>
               <includeScope>system</includeScope>
               <outputDirectory>${build.outputDirectory}</outputDirectory>
+                <excludes>**\/MANIFEST.MF</excludes>
             </configuration>
           </execution>
         </executions>
