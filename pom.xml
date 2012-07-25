@@ -130,6 +130,16 @@
         <configuration>
           <productVersion>${bamboo.version}</productVersion>
           <productDataVersion>${bamboo.data.version}</productDataVersion>
+            <instructions>
+                <Import-Package>
+                    com.atlassian.bamboo.plugins.git,
+                    org.apache.commons.codec.digest;version="[1.0,2.0)",
+                    *
+                </Import-Package>
+                <Export-Package>
+                    com.atlassian.bamboo.plugins.git
+                </Export-Package>
+            </instructions>
           <!--<extractDependencies>true</extractDependencies>-->
         </configuration>
       </plugin>
@@ -161,6 +171,7 @@
             <configuration>
               <includeScope>system</includeScope>
               <outputDirectory>${build.outputDirectory}</outputDirectory>
+                <excludes>**\/MANIFEST.MF</excludes>
             </configuration>
           </execution>
         </executions>
