@@ -4,6 +4,7 @@ package com.atlassian.bamboo.plugins.git;
 import com.atlassian.bamboo.build.CommandLogEntry;
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.repository.RepositoryException;
+import com.atlassian.bamboo.util.BambooStringUtils;
 import com.opensymphony.xwork.TextProvider;
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.dircache.DirCache;
@@ -91,7 +92,7 @@ public class JGitOperationHelper extends GitOperationHelper
     }
 
     @Override
-    protected String doCheckout(@NotNull final FileRepository localRepository, @NotNull final File sourceDirectory, @NotNull final String targetRevision, @Nullable final String previousRevision, final boolean useSubmodules) throws RepositoryException
+    protected String doCheckout(@NotNull final FileRepository localRepository, @NotNull final File sourceDirectory, @NotNull final String branchRefSpec, @NotNull final String targetRevision, @Nullable final String previousRevision, final boolean useSubmodules) throws RepositoryException
     {
         if (useSubmodules)
         {
@@ -123,10 +124,26 @@ public class JGitOperationHelper extends GitOperationHelper
                 throw new RepositoryException(buildLogger.addErrorLogEntry(message));
             }
 
-            final RefUpdate refUpdate = localRepository.updateRef(Constants.HEAD);
-            refUpdate.setNewObjectId(targetCommit);
-            refUpdate.forceUpdate();
-            // if new branch -> refUpdate.link() instead of forceUpdate()
+            //if we are checking out a tag or tipmost commit of a branch, we should update the HEAD to a refspec
+            //otherwise we update HEAD to hash value and enter a detached head state
+            //command line git always enters a detached head state when we checkout using hash
+            if (branchRefSpec.startsWith("refs/") && localRepository.resolve(branchRefSpec).equals(targetCommit))
+            {
+                boolean createDetachedHead = false;
+                localRepository.updateRef(Constants.HEAD, createDetachedHead).link(branchRefSpec);
+            }
+            else if (BambooStringUtils.in(branchRefSpec, "HEAD"))
+            {
+                //some names don't switch branches, HEAD file will have to be updated ofc, but not in case of HEAD :-)
+            }
+            else
+            {
+                //a specific, non-tipmost revision
+                boolean createDetachedHead = true;
+                final RefUpdate refUpdate = localRepository.updateRef(Constants.HEAD, createDetachedHead);
+                refUpdate.setNewObjectId(targetCommit);
+                refUpdate.forceUpdate();
+            }
 
             return targetCommit.getId().getName();
         }

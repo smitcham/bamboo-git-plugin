@@ -5,6 +5,7 @@ import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.storage.file.FileRepository;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -19,6 +20,8 @@ public class CheckingOutTagsTest extends GitAbstractTest
 {
     private GitTestRepository srcRepo;
     private File srcDir;
+    private RevTag tagMaster1;
+    private RevTag tagBranch1;
 
     @BeforeClass
     void setUpTest() throws IOException, GitAPIException
@@ -28,7 +31,7 @@ public class CheckingOutTagsTest extends GitAbstractTest
         String initial = srcRepo.commitFileContents("Initial contents").name();
 
         srcRepo.commitFileContents("master1");
-        srcRepo.git.tag().setName("master1").call();
+        tagMaster1 = srcRepo.git.tag().setName("master1").call();
 
         srcRepo.commitFileContents("master2");
         srcRepo.git.tag().setName("master2").call();
@@ -41,7 +44,7 @@ public class CheckingOutTagsTest extends GitAbstractTest
         srcRepo.git.checkout().setCreateBranch(true).setName("branch").setStartPoint(initial).call();
 
         srcRepo.commitFileContents("branch1");
-        srcRepo.git.tag().setName("branch1").call();
+        tagBranch1 = srcRepo.git.tag().setName("branch1").call();
 
         srcRepo.commitFileContents("branch2");
         srcRepo.git.tag().setName("branch2").call();
@@ -130,8 +133,8 @@ public class CheckingOutTagsTest extends GitAbstractTest
 
                 {"refs/heads/master", "refs/heads/master", "Master top"},
                 {"refs/heads/branch", "refs/heads/branch", "Branch top"},
-                {"refs/tags/master1", "refs/heads/master", "master1"},
-                {"refs/tags/branch1", "refs/heads/master", "branch1"},      // tags don't know about branches
+                {"refs/tags/master1", tagMaster1.getObject().getName(), "master1"}, //detached head
+                {"refs/tags/branch1", tagBranch1.getObject().getName(), "branch1"},      // detached head, tags don't know about branches
 
                 {"HEAD", "refs/heads/master", "Last commit"},
         };
