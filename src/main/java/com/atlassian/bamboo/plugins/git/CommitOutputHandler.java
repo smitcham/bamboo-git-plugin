@@ -21,12 +21,13 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     private static final Logger log = Logger.getLogger(CommitOutputHandler.class);
 
     // ------------------------------------------------------------------------------------------------------- Constants
-    private static final String HASH = "[hash]";
-    private static final String COMMITER_NAME = "[commiter_name]";
-    private static final String COMMITER_EMAIL = "[commiter_email]";
-    private static final String TIMESTAMP = "[timestamp]";
-    private static final String COMMIT_MESSAGE = "[commit_message]";
-    private static final String FILE_LIST = "[file_list]";
+    private static final String SALT = "[d31bfa5_BAM_";
+    private static final String HASH = SALT + "hash]";
+    private static final String COMMITER_NAME = SALT + "commiter_name]";
+    private static final String COMMITER_EMAIL = SALT + "commiter_email]";
+    private static final String TIMESTAMP = SALT + "timestamp]";
+    private static final String COMMIT_MESSAGE = SALT + "commit_message]";
+    private static final String FILE_LIST = SALT + "file_list]";
 
     public static final String LOG_COMMAND_FORMAT_STRING = HASH+"%H%n"+COMMITER_NAME+"%cN%n"+COMMITER_EMAIL+"%ce%n"+TIMESTAMP+"%ct%n"+COMMIT_MESSAGE+"%B%n"+FILE_LIST;
 
