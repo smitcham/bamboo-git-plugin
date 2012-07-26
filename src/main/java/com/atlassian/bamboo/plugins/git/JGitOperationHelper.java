@@ -12,6 +12,8 @@ import com.atlassian.bamboo.plan.branch.VcsBranch;
 import com.atlassian.bamboo.plan.branch.VcsBranchImpl;
 import com.atlassian.bamboo.repository.InvalidRepositoryException;
 import com.atlassian.bamboo.repository.RepositoryException;
+import com.atlassian.bamboo.util.BambooStringUtils;
+import com.atlassian.bamboo.util.TextProviderUtils;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChangesImpl;
 import com.atlassian.sal.api.message.I18nResolver;
@@ -59,6 +61,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class JGitOperationHelper extends AbstractGitOperationHelper
 {
@@ -76,29 +79,6 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
     }
 
     // ----------------------------------------------------------------------------------------------- Interface Methods
-    private void doFetch(@NotNull final Transport transport, @NotNull final File sourceDirectory, final RefSpec refSpec, final boolean useShallow) throws RepositoryException
-    {
-        String branchDescription = "(unresolved) " + accessData.branch;
-        try
-        {
-            transport.setTagOpt(TagOpt.AUTO_FOLLOW);
-
-            FetchResult fetchResult = transport.fetch(new BuildLoggerProgressMonitor(buildLogger), Arrays.asList(refSpec), useShallow ? 1 : 0);
-            buildLogger.addBuildLogEntry("Git: " + fetchResult.getMessages());
-        }
-        catch (IOException e)
-        {
-            String message = i18nResolver.getText("repository.git.messages.fetchingFailed", accessData.repositoryUrl, branchDescription, sourceDirectory);
-            throw new RepositoryException(buildLogger.addErrorLogEntry(message + " " + e.getMessage()), e);
-        }
-        finally
-        {
-            if (transport != null)
-            {
-                transport.close();
-            }
-        }
-    }
 
     @Override
     public String commit(@NotNull File sourceDirectory, @NotNull String message, @NotNull String comitterName, @NotNull String comitterEmail) throws RepositoryException
@@ -123,7 +103,9 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
         //}
     }
 
-    private String doCheckout(@NotNull final FileRepository localRepository, @NotNull final File sourceDirectory, @NotNull final String targetRevision, @Nullable final String previousRevision, final boolean useSubmodules) throws RepositoryException
+    private String doCheckout(@NotNull final FileRepository localRepository,
+                              @NotNull final String targetRevision, @Nullable final String previousRevision,
+                              final boolean useSubmodules) throws RepositoryException
     {
         if (useSubmodules)
         {
@@ -155,10 +137,43 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
                 throw new RepositoryException(buildLogger.addErrorLogEntry(message));
             }
 
-            final RefUpdate refUpdate = localRepository.updateRef(Constants.HEAD);
-            refUpdate.setNewObjectId(targetCommit);
-            refUpdate.forceUpdate();
-            // if new branch -> refUpdate.link() instead of forceUpdate()
+            String branchRefSpec;
+            try
+            {
+                branchRefSpec = withTransport(localRepository, accessData, new WithTransportCallback<Exception, String>()
+                {
+                    @Nullable
+                    @Override
+                    public String doWithTransport(@NotNull Transport transport) throws Exception
+                    {
+                        return getRefSpecForName(transport, accessData.branch);
+                    }
+                });
+            } catch (Exception e)
+            {
+                throw new RepositoryException("Unable to resolve branch name", e);
+            }
+
+            //if we are checking out a tag or tipmost commit of a branch, we should update the HEAD to a refspec
+            //otherwise we update HEAD to hash value and enter a detached head state
+            //command line git always enters a detached head state when we checkout using hash
+            if (branchRefSpec.startsWith("refs/") && localRepository.resolve(branchRefSpec).equals(targetCommit))
+            {
+                boolean createDetachedHead = false;
+                localRepository.updateRef(Constants.HEAD, createDetachedHead).link(branchRefSpec);
+            }
+            else if (BambooStringUtils.in(branchRefSpec, "HEAD"))
+            {
+                //some names don't switch branches, HEAD file will have to be updated ofc, but not in case of HEAD :-)
+            }
+            else
+            {
+                //a specific, non-tipmost revision
+                boolean createDetachedHead = true;
+                final RefUpdate refUpdate = localRepository.updateRef(Constants.HEAD, createDetachedHead);
+                refUpdate.setNewObjectId(targetCommit);
+                refUpdate.forceUpdate();
+            }
 
             return targetCommit.getId().getName();
         }
@@ -254,7 +269,7 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
                 File lck = new File(localRepository.getIndexFile().getParentFile(), localRepository.getIndexFile().getName() + ".lock");
                 FileUtils.deleteQuietly(lck);
 
-                return doCheckout(localRepository, sourceDirectory, targetRevision, previousRevision, accessData.useSubmodules);
+                return doCheckout(localRepository, targetRevision, previousRevision, accessData.useSubmodules);
             }
             finally
             {
@@ -275,7 +290,7 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
 
     private void fetch(@NotNull final File sourceDirectory, final String branch, final boolean useShallow) throws RepositoryException
     {
-        final String[] branchDescription = {"(unresolved) " + branch};
+        final AtomicReference<String> branchDescription = new AtomicReference<String>("(unresolved) " + branch);
         try
         {
             final FileRepository localRepository = createLocalRepository(sourceDirectory, null);
@@ -286,24 +301,8 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
                     @Override
                     public Void doWithTransport(@NotNull Transport transport) throws Exception
                     {
-                        final String resolvedBranch;
-                        if (StringUtils.startsWithAny(branch, FQREF_PREFIXES))
-                        {
-                            resolvedBranch = branch;
-                        }
-                        else
-                        {
-                            resolvedBranch = withFetchConnection(transport, new WithFetchConnectionCallback<Exception, String>()
-                            {
-                                @Override
-                                public String doWithFetchConnection(@NotNull Transport transport, @NotNull FetchConnection connection) throws Exception
-                                {
-                                    final Ref ref = resolveRefSpec(branch, connection);
-                                    return ref.getName();
-                                }
-                            });
-                        }
-                        branchDescription[0] = resolvedBranch;
+                        final String resolvedBranch = getRefSpecForName(transport, branch);
+                        branchDescription.set(resolvedBranch);
 
                         buildLogger.addBuildLogEntry(i18nResolver.getText("repository.git.messages.fetchingBranch", resolvedBranch, accessData.repositoryUrl)
                                                      + (useShallow ? " " + i18nResolver.getText("repository.git.messages.doingShallowFetch") : ""));
@@ -312,7 +311,22 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
                                 .setSource(resolvedBranch)
                                 .setDestination(resolvedBranch);
 
-                        doFetch(transport, sourceDirectory, refSpec, useShallow);
+                        try
+                        {
+                            transport.setTagOpt(TagOpt.AUTO_FOLLOW);
+
+                            FetchResult fetchResult = transport.fetch(new BuildLoggerProgressMonitor(buildLogger), Arrays.asList(refSpec), useShallow ? 1 : 0);
+                            buildLogger.addBuildLogEntry("Git: " + fetchResult.getMessages());
+                        }
+                        catch (IOException e)
+                        {
+                            String message = i18nResolver.getText("repository.git.messages.fetchingFailed", accessData.repositoryUrl, branchDescription.get(), sourceDirectory);
+                            throw new RepositoryException(buildLogger.addErrorLogEntry(message + " " + e.getMessage()), e);
+                        }
+                        finally
+                        {
+                            transport.close();
+                        }
 
                         if (resolvedBranch.startsWith(Constants.R_HEADS))
                         {
@@ -330,7 +344,7 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
         }
         catch (Exception e)
         {
-            String message = i18nResolver.getText("repository.git.messages.fetchingFailed", accessData.repositoryUrl, branchDescription[0], sourceDirectory);
+            String message = TextProviderUtils.getText(i18nResolver, "repository.git.messages.fetchingFailed", accessData.repositoryUrl, branchDescription.get(), sourceDirectory.getAbsolutePath());
             throw new RepositoryException(buildLogger.addErrorLogEntry(message + " " + e.getMessage()), e);
         }
     }
@@ -485,22 +499,44 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
     }
 
     // -------------------------------------------------------------------------------------- Basic Accessors / Mutators
-
-    @Nullable
-    protected static Ref resolveRefSpec(String branch, FetchConnection fetchConnection)
+    @NotNull
+    private String getRefSpecForName(@NotNull Transport transport, @Nullable final String name) throws Exception
     {
-        final Collection<String> candidates;
-        if (StringUtils.isBlank(branch))
+        final String resolvedBranch;
+        if (StringUtils.startsWithAny(name, FQREF_PREFIXES))
         {
-            candidates = Arrays.asList(Constants.R_HEADS + Constants.MASTER, Constants.HEAD);
-        }
-        else if (StringUtils.startsWithAny(branch, FQREF_PREFIXES))
-        {
-            candidates = Collections.singletonList(branch);
+            resolvedBranch = name;
         }
         else
         {
-            candidates = Arrays.asList(branch, Constants.R_HEADS + branch, Constants.R_TAGS + branch);
+            resolvedBranch = withFetchConnection(transport, new WithFetchConnectionCallback<Exception, String>()
+            {
+                @Override
+                public String doWithFetchConnection(@NotNull Transport transport, @NotNull FetchConnection connection) throws Exception
+                {
+                    final Ref ref = resolveRefSpec(name, connection);
+                    return ref.getName();
+                }
+            });
+        }
+        return resolvedBranch;
+    }
+
+    @Nullable
+    protected static Ref resolveRefSpec(String name, FetchConnection fetchConnection)
+    {
+        final Collection<String> candidates;
+        if (StringUtils.isBlank(name))
+        {
+            candidates = Arrays.asList(Constants.R_HEADS + Constants.MASTER, Constants.HEAD);
+        }
+        else if (StringUtils.startsWithAny(name, FQREF_PREFIXES))
+        {
+            candidates = Collections.singletonList(name);
+        }
+        else
+        {
+            candidates = Arrays.asList(name, Constants.R_TAGS + name, Constants.R_HEADS + name);
         }
 
         for (String candidate : candidates)
@@ -792,9 +828,11 @@ public class JGitOperationHelper extends AbstractGitOperationHelper
 
     protected interface WithTransportCallback<E extends java.lang.Throwable, T>
     {
+        @Nullable
         T doWithTransport(@NotNull Transport transport) throws E;
     }
 
+    @Nullable
     protected <E extends java.lang.Throwable, T> T withTransport(@NotNull FileRepository repository,
                                                                  @NotNull final GitRepository.GitRepositoryAccessData accessData,
                                                                  @NotNull WithTransportCallback<E, T> callback) throws E, RepositoryException

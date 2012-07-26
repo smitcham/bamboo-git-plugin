@@ -31,6 +31,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.eclipse.jgit.lib.Repository;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -226,7 +227,7 @@ public class GitAbstractTest
         return new I18nResolverAdapter(bean);
     }
 
-    protected static GitRepositoryAccessData createAccessData(String repositoryUrl)
+    protected static GitRepositoryAccessData createAccessData(@NotNull String repositoryUrl)
     {
         return createAccessData(repositoryUrl, null);
     }
@@ -236,12 +237,12 @@ public class GitAbstractTest
         return createAccessData(repositoryFile.getAbsolutePath(), branch);
     }
 
-    protected static GitRepositoryAccessData createAccessData(String repositoryUrl, @Nullable String branch)
+    protected static GitRepositoryAccessData createAccessData(@NotNull String repositoryUrl, @Nullable String branch)
     {
         return createAccessData(repositoryUrl, branch, null, null, null, null);
     }
 
-    protected static GitRepositoryAccessData createAccessData(String repositoryUrl, String branch, @Nullable String username, @Nullable String password, @Nullable String sshKey, @Nullable String sshPassphrase)
+    protected static GitRepositoryAccessData createAccessData(@NotNull String repositoryUrl, String branch, @Nullable String username, @Nullable String password, @Nullable String sshKey, @Nullable String sshPassphrase)
     {
         GitRepositoryAccessData accessData = new GitRepositoryAccessData();
         accessData.repositoryUrl = repositoryUrl;
