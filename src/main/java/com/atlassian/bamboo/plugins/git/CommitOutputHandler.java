@@ -35,7 +35,8 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     {
         INFO,
         COMMIT_MESSAGE,
-        FILE_LIST
+        FILE_LIST,
+        TOO_MANY_COMMITS
     }
     // ------------------------------------------------------------------------------------------------- Type Properties
     private List<CommitContext> extractedCommits = Lists.newArrayList();
@@ -44,7 +45,6 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     private String commiterName = null;
     private int skippedCommitCount;
     private int maxCommitNumber;
-    private int commitCount = 0;
     private StringBuilder commitMessage = null;
 
     CommitParserState parserState = CommitParserState.INFO;
@@ -73,7 +73,7 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     @Override
     protected void processLine(final int lineNum, final String line)
     {
-        if (extractedCommits.size() <= maxCommitNumber)
+        if (parserState != CommitParserState.TOO_MANY_COMMITS)
         {
             if (parserState != CommitParserState.COMMIT_MESSAGE && line.startsWith(HASH))
             {
@@ -85,6 +85,13 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
                     currentCommit.setAuthor(new AuthorImpl(AuthorImpl.UNKNOWN_AUTHOR));
                     currentCommit.setChangeSetId(getLineContent(HASH,line));
                     extractedCommits.add(currentCommit);
+                }
+                else
+                {
+                    currentCommit = null;
+                    commiterName = null;
+                    skippedCommitCount++;
+                    parserState = CommitParserState.TOO_MANY_COMMITS;
                 }
             }
             if (parserState == CommitParserState.COMMIT_MESSAGE)
@@ -142,8 +149,6 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
         }
         else if (line.startsWith(HASH)) //too many commits
         {
-            currentCommit = null;
-            commiterName = null;
             skippedCommitCount++;
         }
     }
