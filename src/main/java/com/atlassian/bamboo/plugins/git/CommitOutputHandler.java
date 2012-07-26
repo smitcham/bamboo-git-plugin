@@ -44,6 +44,7 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     private String commiterName = null;
     private int skippedCommitCount;
     private int maxCommitNumber;
+    private int commitCount = 0;
     private StringBuilder commitMessage = null;
 
     CommitParserState parserState = CommitParserState.INFO;
@@ -72,16 +73,19 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     @Override
     protected void processLine(final int lineNum, final String line)
     {
-        if (extractedCommits.size() < maxCommitNumber)
+        if (extractedCommits.size() <= maxCommitNumber)
         {
             if (parserState != CommitParserState.COMMIT_MESSAGE && line.startsWith(HASH))
             {
-                parserState = CommitParserState.INFO;
-                currentCommit = new CommitImpl();
-                commiterName  = null;
-                currentCommit.setAuthor(new AuthorImpl(AuthorImpl.UNKNOWN_AUTHOR));
-                currentCommit.setChangeSetId(getLineContent(HASH,line));
-                extractedCommits.add(currentCommit);
+                if (extractedCommits.size() < maxCommitNumber)
+                {
+                    parserState = CommitParserState.INFO;
+                    currentCommit = new CommitImpl();
+                    commiterName  = null;
+                    currentCommit.setAuthor(new AuthorImpl(AuthorImpl.UNKNOWN_AUTHOR));
+                    currentCommit.setChangeSetId(getLineContent(HASH,line));
+                    extractedCommits.add(currentCommit);
+                }
             }
             if (parserState == CommitParserState.COMMIT_MESSAGE)
             {
