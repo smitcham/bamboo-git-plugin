@@ -79,14 +79,11 @@ class GitCommandProcessor implements Serializable, ProxyErrorReceiver
 
     private String getCustomisedSshWrapperScriptContent()
     {
-        if (sshCommand.contains(" "))
-        {
-            return SystemUtils.IS_OS_WINDOWS ? "@" + sshCommand + " %*\r\n" : "#!/bin/sh\n"+ sshCommand + " $@\n";
-        }
-        else
-        {
-            return sshCommand;
-        }
+        return SystemUtils.IS_OS_WINDOWS ?
+                "@\"" + sshCommand + "\" %*\r\n"
+                :
+                "#!/bin/sh\n\""+
+                        sshCommand + "\" $@\n";
     }
 
     private String getSshScriptToRun()
