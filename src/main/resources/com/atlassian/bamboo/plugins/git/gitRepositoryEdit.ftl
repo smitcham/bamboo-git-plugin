@@ -20,7 +20,7 @@
 
         [#if buildConfiguration.getString('repository.git.password')?has_content]
             [@ww.checkbox labelKey='repository.password.change' toggle='true' name='temporary.git.password.change' /]
-            [@ui.bambooSection dependsOn='temporary.git.password.change' showOn='true']
+            [@ui.bambooSection dependsOn='temporary.git.password.change']
                 [@ww.password labelKey='repository.git.password' name='temporary.git.password' required='false' /]
             [/@ui.bambooSection]
         [#else]
@@ -31,7 +31,7 @@
     [@ui.bambooSection dependsOn='repository.git.authenticationType' showOn='SSH_KEYPAIR']
         [#if buildConfiguration.getString('repository.git.ssh.key')?has_content]
             [@ww.checkbox labelKey='repository.git.ssh.key.change' toggle='true' name='temporary.git.ssh.key.change' /]
-            [@ui.bambooSection dependsOn='temporary.git.ssh.key.change' showOn='true']
+            [@ui.bambooSection dependsOn='temporary.git.ssh.key.change']
                 [@ww.file labelKey='repository.git.ssh.key' name='temporary.git.ssh.keyfile' /]
             [/@ui.bambooSection]
         [#else]
@@ -41,7 +41,7 @@
 
         [#if buildConfiguration.getString('repository.git.ssh.passphrase')?has_content]
             [@ww.checkbox labelKey='repository.passphrase.change' toggle='true' name='temporary.git.ssh.passphrase.change' /]
-            [@ui.bambooSection dependsOn='temporary.git.ssh.passphrase.change' showOn='true']
+            [@ui.bambooSection dependsOn='temporary.git.ssh.passphrase.change']
                 [@ww.password labelKey='repository.git.ssh.passphrase' name='temporary.git.ssh.passphrase' /]
             [/@ui.bambooSection]
         [#else]
@@ -51,11 +51,9 @@
     [/@ui.bambooSection]
 
     [@ww.checkbox labelKey='repository.git.useShallowClones' toggle='true' name='repository.git.useShallowClones' /]
-    [@ui.bambooSection dependsOn='repository.git.useShallowClones' showOn='true']
+    [@ui.bambooSection dependsOn='repository.git.useShallowClones']
         [#if (plan.buildDefinition.branchIntegrationConfiguration.enabled)!false ]
-            [@ui.messageBox type='info']
-                [@ww.text name='repository.git.messages.branchIntegration.shallowClonesWillBeDisabled'/]
-            [/@ui.messageBox]
+            [@ui.messageBox type='info' titleKey='repository.git.messages.branchIntegration.shallowClonesWillBeDisabled' /]
         [/#if]
     [/@ui.bambooSection]
 

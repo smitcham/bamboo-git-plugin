@@ -1,0 +1,26 @@
+@loading-image-width: 16px;
+@loading-image-margin: 4px;
+
+.github-repository.loading label:before,
+.github-branch.loading label:before,
+.top-label .github-repository.loading label:after,
+.top-label .github-branch.loading label:after {
+    content: url(../../../images/icons/wait.gif);
+    margin-left: -(@loading-image-width + @loading-image-margin);
+    position: absolute;
+    top: 2px;
+}
+
+.top-label {
+    .github-repository,
+    .github-branch {
+        &.loading label {
+            &:after {
+                margin-left: @loading-image-margin;
+            }
+            &:before {
+                content: normal;
+            }
+        }
+    }
+}
