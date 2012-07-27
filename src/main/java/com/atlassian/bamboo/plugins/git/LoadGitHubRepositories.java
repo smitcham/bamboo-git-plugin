@@ -61,7 +61,7 @@ public class LoadGitHubRepositories extends PlanActionSupport implements PlanEdi
                 GitHubRepository ghRepository = Narrow.to(repository, GitHubRepository.class);
                 if (ghRepository != null)
                 {
-                    password = encryptionService.decrypt(ghRepository.getPassword());
+                    password = encryptionService.decrypt(ghRepository.getEncryptedPassword());
                 }
             }
         }

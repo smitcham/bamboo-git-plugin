@@ -81,6 +81,12 @@
       <version>10.0.1</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.atlassian.plugins.rest</groupId>
+      <artifactId>atlassian-rest-common</artifactId>
+      <version>${atlassian.rest.version}</version>
+      <scope>provided</scope>
+    </dependency>
 
     <dependency>
       <groupId>com.atlassian.bamboo</groupId>
@@ -220,6 +226,11 @@
   <properties>
     <bamboo.version>4.2-m3</bamboo.version>
     <bamboo.data.version>3.2.2</bamboo.data.version>
+
+    <!-- after upgrading atlassian.rest.version do not forget to update jackson.version and jersey.version with values from com.atlassian.plugins.rest:atlassian-rest-parent -->
+    <atlassian.rest.version>2.6.3.1</atlassian.rest.version>
+    <atlassian.rest.jackson.version>1.9.1</atlassian.rest.jackson.version>
+    <atlassian.rest.jersey.version>1.8-atlassian-6</atlassian.rest.jersey.version>
   </properties>
 
   <distributionManagement>

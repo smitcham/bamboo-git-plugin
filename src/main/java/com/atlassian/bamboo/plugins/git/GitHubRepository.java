@@ -293,7 +293,7 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
         return useShallowClones;
     }
 
-    String getPassword()
+    public String getEncryptedPassword()
     {
         return password;
     }
