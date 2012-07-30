@@ -32,6 +32,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.opensymphony.webwork.ServletActionContext;
 
 import java.io.File;
 import java.util.List;
@@ -400,4 +401,11 @@ public class GitHubRepository extends AbstractStandaloneRepository implements Cu
     {
         return gitRepository.commit(file, s);
     }
+
+    public String getOptionDescription()
+    {
+        String capabilitiesLink = ServletActionContext.getRequest().getContextPath() + "/admin/agent/configureSharedLocalCapabilities.action";
+        return i18nResolver.getText("repository.git.description", gitRepository.getGitCapability(), capabilitiesLink);
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.atlassian.bamboo.plugins.git;
 
 import org.eclipse.jgit.transport.URIish;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
@@ -29,17 +30,17 @@ public class UriUtils
     }
 
 
-    public static boolean isSsh(ScpAwareUri repositoryUri)
+    public static boolean isSsh(@NotNull ScpAwareUri repositoryUri)
     {
         return repositoryUri.getScheme().equals(SSH_SCHEME);
     }
 
-    public static boolean isSsh(final String repositoryUrl)
+    public static boolean isSsh(@NotNull final String repositoryUrl)
     {
         return repositoryUrl.startsWith(SSH_SCHEME + SCHEME_DELIMITER);
     }
 
-    public static boolean hasScpSyntax(String s)
+    public static boolean hasScpSyntax(@NotNull String s)
     {
         int scheme = s.indexOf(SCHEME_DELIMITER);
         if (scheme!=-1)

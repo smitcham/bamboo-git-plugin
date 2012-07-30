@@ -21,12 +21,13 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     private static final Logger log = Logger.getLogger(CommitOutputHandler.class);
 
     // ------------------------------------------------------------------------------------------------------- Constants
-    private static final String HASH = "[hash]";
-    private static final String COMMITER_NAME = "[commiter_name]";
-    private static final String COMMITER_EMAIL = "[commiter_email]";
-    private static final String TIMESTAMP = "[timestamp]";
-    private static final String COMMIT_MESSAGE = "[commit_message]";
-    private static final String FILE_LIST = "[file_list]";
+    private static final String SALT = "[d31bfa5_BAM_";
+    private static final String HASH = SALT + "hash]";
+    private static final String COMMITER_NAME = SALT + "commiter_name]";
+    private static final String COMMITER_EMAIL = SALT + "commiter_email]";
+    private static final String TIMESTAMP = SALT + "timestamp]";
+    private static final String COMMIT_MESSAGE = SALT + "commit_message]";
+    private static final String FILE_LIST = SALT + "file_list]";
 
     public static final String LOG_COMMAND_FORMAT_STRING = HASH+"%H%n"+COMMITER_NAME+"%cN%n"+COMMITER_EMAIL+"%ce%n"+TIMESTAMP+"%ct%n"+COMMIT_MESSAGE+"%B%n"+FILE_LIST;
 
@@ -34,7 +35,8 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     {
         INFO,
         COMMIT_MESSAGE,
-        FILE_LIST
+        FILE_LIST,
+        TOO_MANY_COMMITS
     }
     // ------------------------------------------------------------------------------------------------- Type Properties
     private List<CommitContext> extractedCommits = Lists.newArrayList();
@@ -71,16 +73,26 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
     @Override
     protected void processLine(final int lineNum, final String line)
     {
-        if (extractedCommits.size() < maxCommitNumber)
+        if (parserState != CommitParserState.TOO_MANY_COMMITS)
         {
             if (parserState != CommitParserState.COMMIT_MESSAGE && line.startsWith(HASH))
             {
-                parserState = CommitParserState.INFO;
-                currentCommit = new CommitImpl();
-                commiterName  = null;
-                currentCommit.setAuthor(new AuthorImpl(AuthorImpl.UNKNOWN_AUTHOR));
-                currentCommit.setChangeSetId(getLineContent(HASH,line));
-                extractedCommits.add(currentCommit);
+                if (extractedCommits.size() < maxCommitNumber)
+                {
+                    parserState = CommitParserState.INFO;
+                    currentCommit = new CommitImpl();
+                    commiterName  = null;
+                    currentCommit.setAuthor(new AuthorImpl(AuthorImpl.UNKNOWN_AUTHOR));
+                    currentCommit.setChangeSetId(getLineContent(HASH,line));
+                    extractedCommits.add(currentCommit);
+                }
+                else
+                {
+                    currentCommit = null;
+                    commiterName = null;
+                    skippedCommitCount++;
+                    parserState = CommitParserState.TOO_MANY_COMMITS;
+                }
             }
             if (parserState == CommitParserState.COMMIT_MESSAGE)
             {
@@ -137,8 +149,6 @@ public class CommitOutputHandler extends LineOutputHandler implements GitCommand
         }
         else if (line.startsWith(HASH)) //too many commits
         {
-            currentCommit = null;
-            commiterName = null;
             skippedCommitCount++;
         }
     }
